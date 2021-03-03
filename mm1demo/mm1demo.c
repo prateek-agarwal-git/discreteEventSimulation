@@ -216,6 +216,11 @@ void arrive(void) /* Arrival event function. */
         server_status = BUSY;
 
         /* Schedule a departure (service completion). */
+       //  s1, s2, s3 , s4 are four servers which are currently handling requests r1,r2,r3,r4. Each request has a different service time.
+       // when we go in the main function and ask for next_event_type (which is updated to departure) then we will have to remove the request with the 
+     // smallest time stamp. Areas in the rectangle will be accordingly updated. 
+    //single heap in which both arrivals and departures with their timestamps will be stored. we will take out the event corresponding to the minimum time value . 
+ // heap item = [ (timestamp, event_type)]
 
         time_next_event[2] = sim_time + expon(mean_service);
     }

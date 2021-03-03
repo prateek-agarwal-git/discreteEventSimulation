@@ -1,24 +1,29 @@
 #!/bin/env python3
+import heapq
+import random
 from pathlib import Path 
-
-Q_LIMIT=3000 
+NUM_SERVERS=4
+Q_LIMIT=2000 
 BUSY=1
 IDLE=0
 MAXRUNS=50
 MAXDELAYS=5000
-next_event_type=0
-num_custs_delayed=0
-num_delays_required=0
-num_events=2
-num_in_q=0
-server_status=0
-num_of_repetitions=0
-area_num_in_q=0
-area_server_status=0
-mean_interarrival=0
-mean_service=0
-sim_time=0
-time_arrival=[0 for i in range(Q_LIMIT + 1)]
+# Event types 1 for arrival , 2 for departure
+nextEventType=0
+timedoutRequests=0 
+numRequests=5000
+requestsHandled=0 
+#num_delays_required=0
+numberOfEvents=2
+numbersInQueue=0
+serverStatus=IDLE
+numRepetitions=0
+areaNumbersInQueue=0
+areaServerStatus=0
+meanInterArrival= 0.0
+meanServiceTime=0.0
+simulationTime=0
+arrivalTimes=[0 for i in range(Q_LIMIT + 1)]
 time_last_event=0
 time_next_event=0
 total_of_delays=0
@@ -124,21 +129,16 @@ def printstate():
     print()
 def expon(mean):
 	pass
-seed=0
-stream=0
 j=0
 i=0
 infile = fopen("mm1.in", "r");
 outfile = fopen("mm1.out", "w");
 delayfile = fopen("delayfile", "w");
-num_events = 2;
 demo = int(input().rstrip())
-# demo =1;
-[mean_interarrival,mean_service,num_delays_required]= list(map(float, input().rstrip().split()))
+[meanInterarrival,meanServiceTime,numRequests]= list(map(float, input().rstrip().split()))
 outfile = Path('mm1.out').open(mode='w')
 infile = Path('mm1.in').open(mode='r')
 delayfile= Path('delayfile').open(mode='w')
-# outfile = 
 outfile.write("Single-server queueing system\n\n")
 outfile.write("Mean interarrival time" + mean_interarrival+" minutes\n\n")
 outfile.fprintf("Mean service time%16.3f minutes\n\n", mean_service)

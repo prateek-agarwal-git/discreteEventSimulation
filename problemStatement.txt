@@ -3,7 +3,7 @@
 
 Important Deadlines
 Simulation Program Design (Classes, Program Logic - events, event handlers,etc)  due: 
-March 10th, 2021,. Submit a slide presentation, not a report.
+March 10th, 2021. Submit a slide presentation, not a report.
 
 
 Simulation Program Functional Demo: March 17th.
@@ -16,7 +16,7 @@ Simulation Program Functional Demo: March 17th.
 
 
 
-Final Submission (Code, Analysis in slides format) due: March 20th,2021: 
+final Submission (Code, Analysis in slides format) due: March 20th,2021: 
 
 
 * Submit a file called assmt2_final_name1_name2.tar. Tarball should have:
@@ -43,17 +43,19 @@ System Characteristics
 Your system should have the characteristics of the Web server environment that you measured. The following is recommended, you can add/modify.
 
 
-* Multi-core server machine
-   * Assume thread-to-core affinity. Once a thread is “assigned” to a core, it will remain there
-* Multi-threaded Web server
-* Thread-per task model - until max is reached, after which queuing for threads starts. 
-* Round-robin scheduling, with context-switching overhead
-* Request time-outs
+* Multi-core server machine - C > 1
+* Assume thread-to-core affinity. Once a thread is “assigned” to a core, it will remain there - NOT USEFUL. IMPLICITLY ASSUMED.
+* Multi-threaded Web server - SAME AS PREVIOUS TWO.
+
+* Thread-per task model - until max is reached, after which queuing for threads starts. MAX HERE IS THE NUMBER OF THREADS.  A SINGLE QUEUE IS TO BE ASSUMED. 
+ * Round-robin scheduling, with context-switching overhead. CONTEXT SWITCHING OVERHEAD WILL BE A CONSTANT PARAMETER. (CAN BE VARIED IF REQUIRED TO GET VARIED RESULTS).
+* Request time-outs - QUEUE SIZE ON SERVER IS FIXED. WHENEVER A NEW REQUEST ARRIVES WHEN THE QUEUE IS FULL, IT CAN BE ASSUMED THAT THE REQUEST WILL NOT BE SERVICED AND IT IS TIMED OUT.
 * Users are in a standard closed loop - issue request, wait for response, think then issue request again.
    * Think time should have a mode not close to zero - don’t assume exponential think time
-* Have options of various request execution time distributions, such as - constant, uniform, exponential.
-* Request timeout should also have a well-chosen distribution
-   * Have some sort of a minimum, and then a variable component
+---issue request - ARRIVAL RATE. think time - UNIFORM DISTRIBUTION in the range (e.g 3-5 minute)
+* Have options of various request execution time distributions, such as - constant, uniform, exponential.-- SERVICE TIME DISTRIBUTIONS
+* Request timeout should also have a well-chosen distribution- ??
+   * Have some sort of a minimum, and then a variable component - QUALITATIVELY SAME AS THINK time.
 
 
 Performance Metrics
@@ -82,3 +84,7 @@ Students who are excited about some other ‘systems’ they may  be working on 
 * Feb 22nd: Draft Proposal submission
 * March 7th: Proposal finalization after feedback/discussion
 * Rest of the dates are same.
+
+next request = currenttime + randomValue
+            =3 + 2 = 5
+3,4,5,8
