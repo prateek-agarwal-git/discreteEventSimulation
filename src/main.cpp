@@ -2,10 +2,21 @@
 
 struct metrics
 {
+        metrics( int numRuns, int totalRequests){
+                for (int i = 0; i <totalRequests; i+=1){
+                        std::vector <double>temp{};
+                        for (int j = 0; j < numRuns; j+=1){
+                                temp.push_back(-1.0);
+                                // -1.0 represent request drop
+                        }
+                        responseTimes.push_back(temp);
+                } 
+        }
         int timedOutRequests;
         int successfulRequests;
         double coreUtilization;
         double requestDropRate;
+       std::vector<std::vector<double>> responseTimes; 
 };
 struct server
 {
@@ -35,21 +46,19 @@ private:
         const int queueCapacity;
 };
 
-void state::initialize(state &state, client &Client, server &Server)
+void state::initialize(client &Client, server &Server)
 {
-        state.numberRequestsDepartedorTimedOut = 0;
-        state.currentSimulationTime = 0.0;
-
+        numberRequestsDepartedorTimedOut = 0;
+        currentSimulationTime = 0.0;
         for (auto i = 0; i < Client.numberOfUsers; i += 1)
         {
                 double thinkTime = Client.meanThinkTime;
-                state.pq.push();
+                // state.pq.push();
         }
 }
 // time is in seconds
 int main()
 {
-        int numRuns = 1;
         int numberOfUsers = 100;
         double meanThinkTime = 180.0;
         int queueCapacity = 20;
@@ -57,6 +66,9 @@ int main()
         double meanTimeout = 30.0;
         double meanServiceTime = 0.3;
         double contextSwitchOverhead = 0.1;
+        metrics M(numRuns, totalRequests);
+
+        int numRuns = 1;
         int totalRequests = 1000;
         eventType nextEvent;
         state currentState;
