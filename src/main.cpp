@@ -1,27 +1,4 @@
-#include <cstdio>
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <random>
-#include <set>
-
-enum class eventType
-{
-        ARRIVAL,
-        DEPARTURE,
-        TIMEOUT
-};
-
-enum class Status
-{
-        BUSY,
-        IDLE
-};
-
-struct queueObject{
-        int userId;
-        double arrivalTimeStamp;
-};
+#include "../include/main.h"
 
 struct metrics
 {
@@ -33,17 +10,19 @@ struct metrics
 struct server
 {
         server(int numberThreads, double meanServiceTime,
-         double contextSwitchOverhead, int queueCapacity) : numberThreads{numberThreads}, 
-         meanServiceTime{meanServiceTime}, queueCapacity{queueCapacity},
-         contextSwitchOverhead{contextSwitchOverhead} {
-                 threads = new Status[numberThreads];
-                 for (auto i = 0 ; i <numberThreads; i+=1)
-                         threads[i] = Status::IDLE;
-                nextThread = 0;       
-         }
-         ~server(){
-                 delete threads;
-         }
+               double contextSwitchOverhead, int queueCapacity) : numberThreads{numberThreads},
+                                                                  meanServiceTime{meanServiceTime}, queueCapacity{queueCapacity},
+                                                                  contextSwitchOverhead{contextSwitchOverhead}
+        {
+                threads = new Status[numberThreads];
+                for (auto i = 0; i < numberThreads; i += 1)
+                        threads[i] = Status::IDLE;
+                nextThread = 0;
+        }
+        ~server()
+        {
+                delete threads;
+        }
 
 private:
         int numberThreads;
@@ -55,56 +34,17 @@ private:
         double contextSwitchOverhead;
         const int queueCapacity;
 };
-struct client
+
+void state::initialize(state &state, client &Client, server &Server)
 {
+        state.numberRequestsDepartedorTimedOut = 0;
+        state.currentSimulationTime = 0.0;
 
-        client(double meanThinkTime, int numberOfUsers, double meanTimeout) : meanThinkTime{meanThinkTime}, numberOfUsers{numberOfUsers}, meanTimeout{meanTimeout} {}
-        double getMeanThinktime()
+        for (auto i = 0; i < Client.numberOfUsers; i += 1)
         {
-                return meanThinkTime;
+                double thinkTime = Client.meanThinkTime;
+                state.pq.push();
         }
-        double getNumberOfUsers()
-        {
-                return numberOfUsers;
-        }
-        double getMeanTimeout()
-        {
-                return meanTimeout;
-        }
-
-private:
-        const double meanThinkTime;
-        const int numberOfUsers;
-        int numRequestsSent;
-        const double meanTimeout;
-};
-struct Event
-{
-        int typeOfEvent;
-        float timeStamp;
-        int userId;
-};
-struct eventQueue
-{
-        std::priority_queue<Event> pq;
-        // this will be the priority queue in which both arrival and departure times are stored.
-};
-struct compareTimestamps
-{
-        bool operator()(Event const &e1, Event const &e2)
-        {
-                return e1.timeStamp > e2.timeStamp;
-        }
-};
-
-void arrive(){
-
-}
-void departure(){
-
-}
-void requestTimeout(){
-
 }
 // time is in seconds
 int main()
@@ -117,11 +57,53 @@ int main()
         double meanTimeout = 30.0;
         double meanServiceTime = 0.3;
         double contextSwitchOverhead = 0.1;
-        client C(meanThinkTime, numberOfUsers, meanTimeout);
-        std::cout << C.getMeanThinktime() << std::endl;
-        std::cout << C.getMeanTimeout() << std::endl;
-        std::cout << C.getNumberOfUsers() << std::endl;
-        server Server( int numberThreads, double meanServiceTime,
-         double contextSwitchOverhead, int queueCapacity);
+        int totalRequests = 1000;
+        eventType nextEvent;
+        state currentState;
+        int demo = 0;
+        client Client(meanThinkTime, numberOfUsers, meanTimeout);
+        server Server(numThreads, meanServiceTime,
+                      contextSwitchOverhead, queueCapacity);
+
+        currentState.initialize(Client, Server);
+        while (currentState.numberRequestsDepartedorTimedOut < totalRequests)
+        {
+                if (demo)
+                {
+                        currentState.printState();
+                }
+                currentState.updateTimeandNextEvent();
+                switch (currentState.nextEvent)
+                {
+                case eventType::ARRIVAL:
+                {
+                        currentState.arrival();
+                }
+                break;
+                case eventType::DEPARTURE:
+                {
+                        currentState.departure();
+                }
+                break;
+                case eventType::TIMEOUT:
+                {
+                        currentState.requestTimeout();
+                }
+                break;
+                }
+        }
         return 0;
 }
+//double getMeanThinktime()
+//{
+//return meanThinkTime;
+//}
+//double getNumberOfUsers()
+//{
+//return numberOfUsers;
+//}
+//double getMeanTimeout()
+//{
+//return meanTimeout;
+//}
+//
