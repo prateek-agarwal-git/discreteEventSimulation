@@ -40,30 +40,30 @@ int main()
 	cin>>distribution;
 	
 	//use in case of exponential and normal distribution, as required.
-	float mean; // float sd; for normal distribution 
+	float meanServiceTime; // float sd; for normal distribution 
 	/*int S,E;  interval of uniform distribution 
 	cin>>S>>E; */
-	cin>>mean;
+	cin>>meanServiceTime;
 	
-	unsigned int think_time, M; //M is no. of users
-	float request_timeout;
-	cin>>M>>think_time>>request_timeout;
+	unsigned int numberOfUsers; 
+	float meanTimeout, meanThinkTime;
+	cin>>numberOfUsers>>meanThinkTime>>meanTimeout;
 	
-	int threads_at_server, queue_cap;
-	float  context_switch_overhead;
-	cin>>threads_at_server>>queue_cap>>context_switch_overhead;
+	int numThreads, queueCapacity;
+	float  contextSwitchOverhead;
+	cin>>numThreads>>queueCapacity>>contextSwitchOverhead;
 	
-	int runs;
-	cin>>runs;
+	int numRuns;
+	cin>>numRuns;
 
 	unsigned seed;	
-	for(auto i=0;i<runs;i++)
+	for(auto i=0;i<numRuns;i++)
 	{	cin>>seed;
 		default_random_engine eg(seed); // default generator engine
 		
 		switch(distribution){
 		case 'E':
-			expon(eg, (1/mean));
+			expon(eg, (1/meanServiceTime));
 			break;
 		case 'U':
 			//uniform(eg, S, E);
