@@ -1,7 +1,14 @@
 #include <queue>
 #include <iostream>
 #include <unordered_map>
+class abcd
+{
+public:
+        abcd(int i) : i{i} {}
 
+private:
+        int i;
+};
 struct Event
 {
 
@@ -61,5 +68,8 @@ int main()
         {
                 std::cout << it->first << " : " << it->second << std::endl;
         }
+        abcd A(1);
+        // std::cout<<A.i<<std::endl;
+
         return 0;
 }
