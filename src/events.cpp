@@ -1,5 +1,6 @@
 
 #include "../include/main.h"
+#define CONFIG_FILE "configFile.json"
 bool server::allocateThread(int &threadId)
 {
         for (auto count = 0; count < numberThreads; count += 1)
@@ -8,8 +9,8 @@ bool server::allocateThread(int &threadId)
                 {
                         threads[nextThread] == Status::BUSY;
                         threadId = nextThread;
-                        nextThread+=1;
-                        nextThread%=numberThreads;
+                        nextThread += 1;
+                        nextThread %= numberThreads;
                         return true;
                 }
                 nextThread += 1;
@@ -43,6 +44,45 @@ void state::arrival()
                 S->Q.push_back(tempObject);
                 // give a timeout event here
         }
+}
+void state::readClientConfig(const pt::ptree &configTree)
+{
+        const pt::ptree &clientTree = configTree.get_child("clientStation");
+        C->numberOfUsers = clientTree.get<int>("numberOfUsers");
+        C->meanThinkTime = clientTree.get<double>("meanThinkTime");
+        C->meanRequestTimeout = clientTree.get<double>("meanRequestTimeout");
+}
+void state::readServerConfig(const pt::ptree &configTree)
+{
+        const pt::ptree &serverTree = configTree.get_child("serverStation");
+        S->contextSwitchOverhead = serverTree.get<double>("contextSwitchOverhead");
+        S->meanServiceTime = serverTree.get<double>("meanServiceTime");
+        S->numberThreads = serverTree.get<int>("numberThreads");
+        S->queueCapacity = serverTree.get<int>("queueCapacity");
+}
+
+void state::readExperimentConfig(const pt::ptree &configTree){
+        const pt::ptree &experimentTree = configTree.get_child("experiment");
+        E->runs = experimentTree.get<int>("runs");
+        E->requestsPerRun = experimentTree.get<int>("requestPerRun");
+}
+
+void state::readDistributionConfig(const pt::ptree &configTree){
+        const pt::ptree &clientTree = configTree.get_child("distributions");
+
+}
+void state::readConfig()
+{
+        pt::ptree configTree;
+        pt::read_json(CONFIG_FILE, configTree);
+        //reading client station
+        readClientConfig(configTree);
+        //reading server station
+        readServerConfig(configTree);
+        //reading Experiment parameters
+        readExperimentConfig(configTree);
+        // reading Distribution details
+        readDistributionConfig(configTree);
 }
 void state::departure() {}
 void state::requestTimeout() {}

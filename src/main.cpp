@@ -9,7 +9,7 @@ int main()
         double meanThinkTime = 180.0;
         int queueCapacity = 20;
         int numThreads = 1;
-        double meanTimeout = 30.0;
+        double meanRequestTimeout = 30.0;
         double meanServiceTime = 0.3;
         double contextSwitchOverhead = 0.1;
         metrics M(numRuns, totalRequests);
@@ -17,7 +17,7 @@ int main()
         eventType nextEventType;
         state currentState;
         int demo = 0;
-        client Client(meanThinkTime, numberOfUsers, meanTimeout);
+        client Client(meanThinkTime, numberOfUsers, meanRequestTimeout);
         server Server(numThreads, meanServiceTime,
                       contextSwitchOverhead, queueCapacity);
 

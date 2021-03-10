@@ -6,15 +6,27 @@
 #include <set>
 #include <fstream>
 #include <memory>
-// Entry to priority_queue
-// server to client during departure (ARRIVAL, TIMESTAMP, userID): Initially and at the departure or timeout.
-// client to queue(TIMEOUT, TIMESTAMP,  userId) -
-//  queue to server for service  (DEPARTURE, TIMESTAMP, USERID, ServerID);  - server idle
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
+#include <string>
+#include <set>
+#include <exception>
+#include <iostream>
+namespace pt = boost::property_tree;
 enum class eventType
 {
         ARRIVAL,
         DEPARTURE,
         TIMEOUT
+};
+
+enum class Distribution
+{
+        NORMAL,
+        EXPONENTIAL,
+        UNIFORM,
+        ERLANG
 };
 
 enum class Status
@@ -53,15 +65,21 @@ struct metrics
 };
 struct client
 {
+        client() {}
 
-        client(double meanThinkTime, int numberOfUsers, double meanTimeout) : meanThinkTime{meanThinkTime}, numberOfUsers{numberOfUsers}, meanTimeout{meanTimeout}
+        client(double meanThinkTime, int numberOfUsers, double meanRequestTimeout) : meanThinkTime{meanThinkTime}, numberOfUsers{numberOfUsers}, meanRequestTimeout{meanRequestTimeout}
         {
         }
-        const double meanThinkTime;
-        const int numberOfUsers;
-        const double meanTimeout;
+        double meanThinkTime;
+        int numberOfUsers;
+        double meanRequestTimeout;
 };
 
+struct Experiment
+{
+        int runs;
+        int requestsPerRun;
+};
 struct compareTimestamps
 {
         bool operator()(Event const &e1, Event const &e2)
@@ -108,6 +126,12 @@ struct state
         {
                 std::unique_ptr<server> tempS{new server};
                 S = std::move(tempS);
+                std::unique_ptr<client> tempC{new client};
+                C = std::move(tempC);
+                std::unique_ptr<metrics> tempM{new metrics};
+                M = std::move(tempM);
+                std::unique_ptr<Experiment> tempE{new Experiment};
+                E = std::move(tempE);
         }
         std::priority_queue<Event, std::vector<Event>, compareTimestamps> pq;
         std::set<int> requestsAtServer;
@@ -117,15 +141,28 @@ struct state
         Event nextEventObject;
         std::random_device rd;
         void arrival();
+        void readConfig();
+        void readClientConfig(const pt::ptree &configTree);
+        void readServerConfig(const pt::ptree &configTree);
+        void readExperimentConfig(const pt::ptree &configTree);
+        void readDistributionConfig(const pt::ptree &configTree);
         void departure();
         void requestTimeout();
         void printState();
         void updateTimeandNextEvent();
         bool isAnyCoreIdle();
         void initialize();
-        metrics M;
+        std::unique_ptr<metrics> M;
 
         std::unique_ptr<client> C;
         std::unique_ptr<server> S;
+        distributions D;
+        std::unique_ptr<Experiment> E;
         eventType nextEventType;
+};
+struct distributions
+{
+        Distribution thinkTime;
+        Distribution serviceTime;
+        Distribution timeout;
 };
