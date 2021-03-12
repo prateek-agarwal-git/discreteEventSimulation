@@ -1,0 +1,32 @@
+{
+        "clientStation": {
+                "numberOfUsers": 100
+        },
+        "serverStation": {
+                "contextSwitchOverhead": 10,
+                "numberThreads": 4,
+                "queueCapacity": 10
+        },
+        "distribution": {
+                "serviceTime": {
+                        "type": "exponential",
+                        "p1": 3,
+                        "p2": 4
+                },
+                "thinkTime": {
+                        "type": "normal",
+                        "p1": 3,
+                        "p2": 4
+                },
+                "timeOut": {
+                        "type": "uniform",
+                        "p1": 3,
+                        "p2": 4
+                },
+                "seed": 102475
+        },
+        "experiment": {
+                "runs": 100,
+                "requestPerRun": 5000
+        }
+}

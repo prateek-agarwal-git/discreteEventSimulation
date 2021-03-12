@@ -2,50 +2,32 @@
 
 int main()
 {
-
-        int numRuns = 1;
-        int totalRequests = 1000;
-        int numberOfUsers = 100;
-        double meanThinkTime = 180.0;
-        int queueCapacity = 20;
-        int numThreads = 1;
-        double meanRequestTimeout = 30.0;
-        double meanServiceTime = 0.3;
-        double contextSwitchOverhead = 0.1;
-        metrics M(numRuns, totalRequests);
-
-        eventType nextEventType;
-        state currentState;
+        state S;
         int demo = 0;
-        client Client(meanThinkTime, numberOfUsers, meanRequestTimeout);
-        server Server(numThreads, meanServiceTime,
-                      contextSwitchOverhead, queueCapacity);
-
-        currentState.initialize();
-        while (currentState.numberRequestsDepartedorTimedOut < totalRequests)
+        S.readConfig();
+        S.printConfig();
+        exit(0);
+        for (auto i = 0; i < S.E->runs; i += 1)
         {
-                if (demo)
+                S.initialize();
+                while (S.M->requestsHandled < S.E->requestsPerRun)
                 {
-                        currentState.printState();
-                }
-                currentState.updateTimeandNextEvent();
-                switch (currentState.nextEventType)
-                {
-                case eventType::ARRIVAL:
-                {
-                        currentState.arrival();
-                }
-                break;
-                case eventType::DEPARTURE:
-                {
-                        currentState.departure();
-                }
-                break;
-                case eventType::TIMEOUT:
-                {
-                        currentState.requestTimeout();
-                }
-                break;
+                        if (demo)
+                                S.printState();
+
+                        S.updateTimeandNextEvent();
+                        switch (S.nextEventType)
+                        {
+                        case eventType::ARRIVAL:
+                                S.arrival();
+                                break;
+                        case eventType::DEPARTURE:
+                                S.departure();
+                                break;
+                        case eventType::TIMEOUT:
+                                S.requestTimeout();
+                                break;
+                        }
                 }
         }
         return 0;

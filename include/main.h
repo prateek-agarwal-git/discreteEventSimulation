@@ -1,9 +1,9 @@
 #include <cstdio>
-#include <iostream>
 #include <vector>
 #include <queue>
 #include <random>
 #include <set>
+#include <iostream>
 #include <fstream>
 #include <memory>
 #include <boost/property_tree/ptree.hpp>
@@ -21,18 +21,16 @@ enum class eventType
         TIMEOUT
 };
 
-enum class Distribution
-{
-        NORMAL,
-        EXPONENTIAL,
-        UNIFORM,
-        ERLANG
-};
-
 enum class Status
 {
         BUSY,
         IDLE
+};
+struct Distribution
+{
+        std::string type;
+        double p1;
+        double p2;
 };
 struct Event
 {
@@ -57,26 +55,26 @@ struct metrics
                         responseTimes.push_back(temp);
                 }
         }
+        int requestsHandled;
         int timedOutRequests;
         int successfulRequests;
         double coreUtilization;
-        double requestDropRate;
+        int droppedRequests;
         std::vector<std::vector<double>> responseTimes;
 };
 struct client
 {
         client() {}
-
-        client(double meanThinkTime, int numberOfUsers, double meanRequestTimeout) : meanThinkTime{meanThinkTime}, numberOfUsers{numberOfUsers}, meanRequestTimeout{meanRequestTimeout}
-        {
-        }
-        double meanThinkTime;
+        void printClientConfig();
+        void readClientConfig(const pt::ptree &configTree);
         int numberOfUsers;
-        double meanRequestTimeout;
 };
 
 struct Experiment
 {
+
+        void printExperimentConfig();
+        void readExperimentConfig(const pt::ptree &configTree);
         int runs;
         int requestsPerRun;
 };
@@ -96,30 +94,29 @@ struct server
 {
         server()
         {
-                std::unique_ptr<Status[]> temp{new Status[numberThreads]};
-                threads = std::move(temp);
                 for (auto i = 0; i < numberThreads; i += 1)
-                        threads[i] = Status::IDLE;
+                        threads.push_back(Status::IDLE);
                 nextThread = 0;
         }
-        server(int numberThreads, double meanServiceTime,
-               double contextSwitchOverhead, int queueCapacity) : numberThreads{numberThreads},
-                                                                  meanServiceTime{meanServiceTime}, queueCapacity{queueCapacity},
-                                                                  contextSwitchOverhead{contextSwitchOverhead}
-        {
-        }
 
+        void readServerConfig(const pt::ptree &configTree);
         bool allocateThread(int &threadId);
-
+        void printServerConfig();
         std::deque<queueObject> Q;
         int numberThreads;
         int nextThread;
-        std::unique_ptr<Status[]> threads;
-        double meanServiceTime;
+        std::vector<Status> threads;
         double contextSwitchOverhead;
         int queueCapacity;
 };
-
+struct distributions
+{
+        void readDistributionConfig(const pt::ptree &configTree);
+        void printDistributionConfig();
+        Distribution thinkTime;
+        Distribution serviceTime;
+        Distribution timeOut;
+};
 struct state
 {
         state()
@@ -135,17 +132,12 @@ struct state
         }
         std::priority_queue<Event, std::vector<Event>, compareTimestamps> pq;
         std::set<int> requestsAtServer;
-        int numberRequestsDepartedorTimedOut;
-        int numberOfDroppedRequests;
         double currentSimulationTime;
         Event nextEventObject;
         std::random_device rd;
         void arrival();
         void readConfig();
-        void readClientConfig(const pt::ptree &configTree);
-        void readServerConfig(const pt::ptree &configTree);
-        void readExperimentConfig(const pt::ptree &configTree);
-        void readDistributionConfig(const pt::ptree &configTree);
+        void printConfig();
         void departure();
         void requestTimeout();
         void printState();
@@ -159,10 +151,4 @@ struct state
         distributions D;
         std::unique_ptr<Experiment> E;
         eventType nextEventType;
-};
-struct distributions
-{
-        Distribution thinkTime;
-        Distribution serviceTime;
-        Distribution timeout;
 };
