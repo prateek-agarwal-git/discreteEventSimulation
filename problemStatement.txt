@@ -54,7 +54,7 @@ Your system should have the characteristics of the Web server environment that y
    * Think time should have a mode not close to zero - don’t assume exponential think time
 ---issue request - ARRIVAL RATE. think time - UNIFORM DISTRIBUTION in the range (e.g 3-5 minute)
 * Have options of various request execution time distributions, such as - constant, uniform, exponential.-- SERVICE TIME DISTRIBUTIONS
-* Request timeout should also have a well-chosen distribution- ??
+* Request timeout should also have a well-chosen distribution- 60 seconds-180seconds ??
    * Have some sort of a minimum, and then a variable component - QUALITATIVELY SAME AS THINK time.
 
 
@@ -70,7 +70,7 @@ Metrics/graphs will be similar to what you measured for assignment. One set of y
    * Throughput = goodput + badput
 * Request Drop rate vs number of users
 * Average core utilization vs Number of users
-* Some additional graphs representing your own curiosity regarding system performance vs some system parameter
+* Some additional graphs representing your own curiosity regarding system performance vs some system parameter- average number in queue.
 
 
 

@@ -13,6 +13,8 @@
 #include <set>
 #include <exception>
 #include <iostream>
+#include <ctime>
+#include <cstdint>
 namespace pt = boost::property_tree;
 enum class eventType
 {
@@ -92,12 +94,9 @@ struct queueObject
 };
 struct server
 {
-        server()
-        {
-                for (auto i = 0; i < numberThreads; i += 1)
-                        threads.push_back(Status::IDLE);
-                nextThread = 0;
-        }
+        server() {}
+
+        void initializeServer();
 
         void readServerConfig(const pt::ptree &configTree);
         bool allocateThread(int &threadId);
@@ -108,11 +107,34 @@ struct server
         std::vector<Status> threads;
         double contextSwitchOverhead;
         int queueCapacity;
+        double timeSlice;
 };
+struct preComputedTimes
+{
+        std::vector<double> times{};
+        int currentIndex;
+};
+
 struct distributions
 {
+        distributions()
+        {
+        }
+        double getThinkTime();
+        double getServiceTime();
+        double getTimeOut();
+        uint32_t seed;
         void readDistributionConfig(const pt::ptree &configTree);
+
+        double getTime(preComputedTimes &P);
+        void generateParticular(preComputedTimes &P, Distribution &D, int num);
+        void generateTimeHelper(int);
+        void initialize();
         void printDistributionConfig();
+        preComputedTimes thinkTimeValues;
+        preComputedTimes serviceTimeValues;
+        preComputedTimes timeOutValues;
+        std::mt19937_64 mt_engine;
         Distribution thinkTime;
         Distribution serviceTime;
         Distribution timeOut;
@@ -140,6 +162,7 @@ struct state
         void printConfig();
         void departure();
         void requestTimeout();
+        void generateTimes();
         void printState();
         void updateTimeandNextEvent();
         bool isAnyCoreIdle();

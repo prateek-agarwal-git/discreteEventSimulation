@@ -1,7 +1,57 @@
 
 #include "../include/main.h"
 #define CONFIG_FILE "configFile.json"
-
+void state::generateTimes()
+{
+        D.generateTimeHelper(E->requestsPerRun);
+}
+void distributions::generateParticular(preComputedTimes &P, Distribution &D, int num)
+{
+        P.times.clear();
+        P.currentIndex = 0;
+        mt_engine.seed(seed);
+        if (D.type == "normal")
+        {
+                std::normal_distribution<double> nd{D.p1, D.p2};
+                for (auto i = 0; i < num; i += 1)
+                {
+                        auto temp = nd(mt_engine);
+                        P.times.push_back(temp);
+                }
+        }
+        else if (D.type == "exponential")
+        {
+                // p2 is the minimum value,p1 is the parameter.
+                std::exponential_distribution<double> ed{D.p1};
+                for (auto i = 0; i < num; i += 1)
+                {
+                        auto temp = D.p2 + ed(mt_engine);
+                        P.times.push_back(temp);
+                }
+        }
+        else if (D.type == "uniform")
+        {
+                std::uniform_real_distribution<double> rd{D.p1, D.p2};
+                for (auto i = 0; i < num; i += 1)
+                {
+                        auto temp = rd(mt_engine);
+                        P.times.push_back(temp);
+                }
+        }
+        else
+        {
+                std::cout << "Distribution " << D.type << "not supported." << std::endl;
+        }
+}
+void distributions::generateTimeHelper(int num)
+{
+        generateParticular(thinkTimeValues, thinkTime, num);
+        seed += 1;
+        generateParticular(serviceTimeValues, serviceTime, num);
+        seed += 1;
+        generateParticular(timeOutValues, timeOut, num);
+        seed += 1;
+}
 void distributions::readDistributionConfig(const pt::ptree &configTree)
 {
 
@@ -20,6 +70,8 @@ void distributions::readDistributionConfig(const pt::ptree &configTree)
         timeOut.type = timeOutTree.get<std::string>("type");
         timeOut.p1 = timeOutTree.get<double>("p1");
         timeOut.p2 = timeOutTree.get<double>("p2");
+
+        seed = distributionTree.get<uint32_t>("seed");
 }
 void Experiment::readExperimentConfig(const pt::ptree &configTree)
 {
@@ -56,7 +108,7 @@ void state::arrival()
         if (S->Q.size() == 0 && S->allocateThread(threadId))
         {
                 // request given to a thread. generate a new service time with context switchoverhead
-                auto newServiceTime =0.0;
+                auto newServiceTime = 0.0;
                 // auto newServiceTime = S->meanServiceTime + S->contextSwitchOverhead;
                 Event N{eventType::DEPARTURE, newServiceTime, nextEventObject.requestId, threadId};
                 pq.push(N);
@@ -84,20 +136,29 @@ void server::readServerConfig(const pt::ptree &configTree)
         contextSwitchOverhead = serverTree.get<double>("contextSwitchOverhead");
         numberThreads = serverTree.get<int>("numberThreads");
         queueCapacity = serverTree.get<int>("queueCapacity");
+        timeSlice = serverTree.get<double>("timeSlice");
 }
 
 void state::departure() {}
 void state::requestTimeout() {}
 void state::printState() {}
 void state::updateTimeandNextEvent() {}
+void server::initializeServer()
+{
 
+        for (auto i = 0; i < numberThreads; i += 1)
+                threads.push_back(Status::IDLE);
+        nextThread = 0;
+}
 void state::initialize()
 {
         M->requestsHandled = M->droppedRequests = M->successfulRequests = M->timedOutRequests = 0;
         currentSimulationTime = 0.0;
+        S->initializeServer();
+        D.initialize();
         for (auto i = 0; i < C->numberOfUsers; i += 1)
         {
-                double thinkTime =0.0; 
+                double thinkTime = 0.0;
                 // double thinkTime = C->meanThinkTime;
         }
 }
@@ -105,16 +166,23 @@ void state::initialize()
 void state::printConfig()
 {
         C->printClientConfig();
+        sleep(10);
         S->printServerConfig();
+
+        sleep(10);
         E->printExperimentConfig();
+
+        sleep(10);
         D.printDistributionConfig();
+
+        sleep(10);
 }
 
 void Experiment::printExperimentConfig()
 {
         std::cout << "Experiment Config:" << std::endl;
         std::cout << "runs = " << runs << std::endl;
-        std::cout << "requestsPerRun = " << requestsPerRun<< std::endl;
+        std::cout << "requestsPerRun = " << requestsPerRun << std::endl;
         std::cout << std::endl;
 }
 void client::printClientConfig()
@@ -132,32 +200,35 @@ void server::printServerConfig()
         std::cout << "contextSwitchOverhead = " << contextSwitchOverhead << std::endl;
         std::cout << "Q.size() =  " << Q.size() << std::endl;
         std::cout << "threads.size() =  " << threads.size() << std::endl;
-        for (auto i = 0 ; i < threads.size(); i+=1){
-                if (threads[i] == Status::IDLE){
-                        std::cout<< i<<"th thread is IDLE " <<std::endl;
+        for (auto i = 0; i < threads.size(); i += 1)
+        {
+                if (threads[i] == Status::IDLE)
+                {
+                        std::cout << i << "th thread is IDLE " << std::endl;
                 }
         }
+        std::cout << "timeSlice =" << timeSlice << " seconds." << std::endl;
         std::cout << std::endl;
 }
-void distributions::printDistributionConfig() {
+void distributions::printDistributionConfig()
+{
 
         std::cout << "Distribution Config:" << std::endl;
 
         std::cout << "ThinkTime:" << std::endl;
-        std::cout << "Type:"<<thinkTime.type << std::endl;
-        std::cout << "P1(mean):"<<thinkTime.p1 << std::endl;
-        std::cout << "P2"<<thinkTime.p2 << std::endl;
+        std::cout << "Type:" << thinkTime.type << std::endl;
+        std::cout << "P1(mean):" << thinkTime.p1 << std::endl;
+        std::cout << "P2" << thinkTime.p2 << std::endl;
 
         std::cout << "serviceTime:" << std::endl;
-        std::cout << "Type:"<<serviceTime.type << std::endl;
-        std::cout << "P1(mean):"<<serviceTime.p1 << std::endl;
-        std::cout << "P2"<<serviceTime.p2 << std::endl;
-
+        std::cout << "Type:" << serviceTime.type << std::endl;
+        std::cout << "P1(mean):" << serviceTime.p1 << std::endl;
+        std::cout << "P2" << serviceTime.p2 << std::endl;
 
         std::cout << "timeOut:" << std::endl;
-        std::cout << "Type:"<<timeOut.type << std::endl;
-        std::cout << "P1(mean):"<<timeOut.p1 << std::endl;
-        std::cout << "P2"<<timeOut.p2 << std::endl;
+        std::cout << "Type:" << timeOut.type << std::endl;
+        std::cout << "P1(mean):" << timeOut.p1 << std::endl;
+        std::cout << "P2" << timeOut.p2 << std::endl;
 
         std::cout << std::endl;
 }
@@ -173,4 +244,30 @@ void state::readConfig()
         E->readExperimentConfig(configTree);
         // reading Distribution details
         D.readDistributionConfig(configTree);
+}
+double distributions::getTime(preComputedTimes &P)
+{
+        auto temp = P.times[P.currentIndex];
+        P.currentIndex += 1;
+        P.currentIndex %= P.times.size();
+        return temp;
+}
+double distributions::getThinkTime()
+{
+        return getTime(thinkTimeValues);
+}
+
+double distributions::getServiceTime()
+{
+
+        return getTime(serviceTimeValues);
+}
+double distributions::getTimeOut()
+{
+
+        return getTime(timeOutValues);
+}
+void distributions::initialize()
+{
+        mt_engine.seed(seed);
 }

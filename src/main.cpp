@@ -5,7 +5,9 @@ int main()
         state S;
         int demo = 0;
         S.readConfig();
+        S.initialize();
         S.printConfig();
+        S.generateTimes();
         exit(0);
         for (auto i = 0; i < S.E->runs; i += 1)
         {

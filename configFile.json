@@ -3,9 +3,10 @@
                 "numberOfUsers": 100
         },
         "serverStation": {
-                "contextSwitchOverhead": 10,
+                "contextSwitchOverhead": 0.001,
                 "numberThreads": 4,
-                "queueCapacity": 10
+                "queueCapacity": 10,
+                "timeSlice": 0.01
         },
         "distribution": {
                 "serviceTime": {
