@@ -16,6 +16,8 @@ void distributions::generateParticular(preComputedTimes &P, Distribution &D, int
                 for (auto i = 0; i < num; i += 1)
                 {
                         auto temp = nd(mt_engine);
+                        while(temp<0)
+                                temp = nd(mt_engine);
                         P.times.push_back(temp);
                 }
         }
@@ -25,7 +27,11 @@ void distributions::generateParticular(preComputedTimes &P, Distribution &D, int
                 std::exponential_distribution<double> ed{D.p1};
                 for (auto i = 0; i < num; i += 1)
                 {
-                        auto temp = D.p2 + ed(mt_engine);
+                        //auto temp = D.p2 + ed(mt_engine);
+                        auto temp = ed(mt_engine);
+                        while(temp<0)
+                                temp = ed(mt_engine);
+                        temp += D.p2 ;
                         P.times.push_back(temp);
                 }
         }
@@ -35,6 +41,8 @@ void distributions::generateParticular(preComputedTimes &P, Distribution &D, int
                 for (auto i = 0; i < num; i += 1)
                 {
                         auto temp = rd(mt_engine);
+                        while(temp<0)
+                                temp = rd(mt_engine);
                         P.times.push_back(temp);
                 }
         }
@@ -123,9 +131,13 @@ void state::arrival()
         {
                 // request given to a thread. calculate remaining time with context switchoverhead
                 auto serviceTime = D.getServiceTime();
-                auto remainingTime = serviceTime - S->timeSlice;
+                auto remainingTime = serviceTime > S->timeSlice ?  serviceTime- S->timeSlice : 0.0;
+                auto newServiceTime = remainingTime > 0.0 ? S->timeSlice : serviceTime;
+
+                std::cout<<"Service time for this arrival is "<<serviceTime<<std::endl;
+
                 //get time at which this request will depart from server.
-                auto newTimeStamp = currentSimulationTime + S->timeSlice +  S->contextSwitchOverhead;
+                auto newTimeStamp = currentSimulationTime + newServiceTime +  S->contextSwitchOverhead;
                 Event N{eventType::DEPARTURE, newTimeStamp, nextEventObject.requestId, threadId, remainingTime, newTimeStamp};
                 requestsAtServer.insert(nextEventObject.requestId);
                 pq.push(N);
@@ -143,19 +155,22 @@ void state::arrival()
                 auto newTimeStamp = currentSimulationTime + timeOut;
                 Event N{eventType::TIMEOUT, newTimeStamp,nextEventObject.requestId, -1,0.0, nextEventObject.arrivalTimeStamp};
                 pq.push(N);
-
+                std::cout<<"Server Queue is full so scheduling departure for this ARRIVAL"<<std::endl;
         }
         else
         {
-                //adding in server Queue
+                //add request in server Queue
                 auto ServiceTime = D.getServiceTime();
                 queueObject tempObject{nextEventObject.requestId, nextEventObject.arrivalTimeStamp,ServiceTime};
                 S->Q.push_back(tempObject);
+                
                 // give a timeout event here
                 auto timeOut = D.getTimeOut();
                 Event N{eventType::TIMEOUT, timeOut, nextEventObject.requestId, -1, ServiceTime, nextEventObject.arrivalTimeStamp};
                 requestsAtServer.insert(nextEventObject.requestId);
                 pq.push(N);
+
+                std::cout<<"Added this request in the server queue, added TIMEOUT "<<std::endl;
         }
         
 }
@@ -167,8 +182,11 @@ void state::departure() {
         {       
                 M->successfulRequests.insert(nextEventObject.requestId);
                 //calculate response time.
+                double responseTime = currentSimulationTime - nextEventObject.arrivalTimeStamp;
+                responseTimesPerRun.push_back(responseTime);
 
                 //delete from requestsAtServer set
+                requestsAtServer.erase(nextEventObject.requestId);
 
                 //schedule next Arrival from current time.
                 double newThinkTime = D.getThinkTime();
@@ -178,19 +196,23 @@ void state::departure() {
                 Event N{eventType::ARRIVAL,newArrivalTime,requestId,-1,0.0,0.0};
                 pq.push(N);
         }
+        /*
         else if(S->Q.size()==0){
                 //Queue is empty
         }
+        */
         else if(S->Q.size() == S->queueCapacity){
                 //queue is full
                 //add request id in dropped requests, timeout event is already there in pq
                 M->droppedRequests.insert(nextEventObject.requestId);
-                
+                if(requestsAtServer.count(nextEventObject.requestId))
+                        requestsAtServer.erase(nextEventObject.requestId);
                 
         }
         else
         {
-                // add this request in the Q
+                //this case itself will handle S->Q.size()==0 condition.
+                //add this request in the Q
                 queueObject currentRequest{nextEventObject.requestId, nextEventObject.timeStamp, nextEventObject.remainingTime};
                 S->Q.push_back(currentRequest);
 
@@ -198,11 +220,12 @@ void state::departure() {
                 auto newRequest = S->Q.front();
                 int requestId = nextEventObject.requestId;
                 int threadId = nextEventObject.threadId;
+
                 //double timeStamp = nextEventObject.timeStamp;
                 double serviceTime = nextEventObject.remainingTime > S->timeSlice ? (nextEventObject.remainingTime - S->timeSlice) : nextEventObject.remainingTime;
                 double remainingTime = serviceTime > 0.0 ? serviceTime : 0.0;
                 double departureTime = serviceTime + currentSimulationTime;
-                Event N {eventType::DEPARTURE, departureTime, requestId, threadId, remainingTime,newRequest.arrivalTimeStamp };
+                Event N {eventType::DEPARTURE, departureTime, requestId, threadId, remainingTime, newRequest.arrivalTimeStamp };
                 pq.push(N);
                 S->Q.pop_front();
                 
@@ -210,7 +233,15 @@ void state::departure() {
         }
 }
 void state::requestTimeout() {
-
+        int requestId = nextEventObject.requestId;
+        //check if this request is present in dropped or successful request sets
+        if(!M->successfulRequests.count(requestId) && !M->droppedRequests.count(requestId))
+        {
+                currentSimulationTime = nextEventObject.timeStamp;
+                M->timedOutRequests.insert(requestId);
+                if(requestsAtServer.count(requestId))
+                        requestsAtServer.erase(requestId);
+        }
 }
 void state::printState() {}
 
@@ -228,6 +259,7 @@ void state::initialize()
         S->initializeServer();
         D.initialize();
         generateTimes();
+        responseTimesPerRun.clear();
         for (auto i = 0; i < C->numberOfUsers; i += 1)
         {
                 double thinkTime = D.getThinkTime();
