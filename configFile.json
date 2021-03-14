@@ -6,7 +6,7 @@
                 "contextSwitchOverhead": 0.001,
                 "numberThreads": 4,
                 "queueCapacity": 5,
-                "timeSlice": 0.01
+                "timeSlice": 1
         },
         "distribution": {
                 "serviceTime": {
@@ -28,6 +28,6 @@
         },
         "experiment": {
                 "runs": 1,
-                "requestPerRun": 50
+                "requestPerRun": 20
         }
 }
