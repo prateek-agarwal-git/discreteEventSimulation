@@ -24,16 +24,29 @@ int main()
                         {
                         case eventType::ARRIVAL:
                                 S.arrival();
+                                std::cout<<"ARRIVAL "<<std::endl;
+                                sleep(3);
                                 break;
                         case eventType::DEPARTURE:
                                 S.departure();
+                                std::cout<<"DEPARTURE "<<std::endl;
+                                sleep(3);
                                 break;
                         case eventType::TIMEOUT:
                                 S.requestTimeout();
+                                std::cout<<"DEPARTURE "<<std::endl;
+                                sleep(3);
                                 break;
                         }
+                        std::cout<<"requestsHandled are:  "<<S.M->requestsHandled<<std::endl;
+                        std::cout<<"\nQueue size is " <<S.S->Q.size()<<std::endl;
                 }
-                
+
+                S.M->responseTimes.push_back(S.responseTimesPerRun);
+                //other Calculations:
+                //1) avg responseTime, avg serverUtilization, avgNumInQueue
+                //2) writing response times in a file
+
         }
         return 0;
 }
