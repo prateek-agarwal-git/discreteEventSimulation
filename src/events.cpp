@@ -1,425 +1,211 @@
-
 #include "../include/main.h"
-#define CONFIG_FILE "configFile.json"
-void state::generateTimes()
-{
-        D.generateTimeHelper(E->requestsPerRun);
-}
-void distributions::generateParticular(preComputedTimes &P, Distribution &D, int num)
-{
-        P.times.clear();
-        P.currentIndex = 0;
-        mt_engine.seed(seed);
-        if (D.type == "normal")
-        {
-                std::normal_distribution<double> nd{D.p1, D.p2};
-                for (auto i = 0; i < num; i += 1)
-                {
-                        auto temp = nd(mt_engine);
-                        while(temp<0)
-                                temp = nd(mt_engine);
-                        P.times.push_back(temp);
-                }
-        }
-        else if (D.type == "exponential")
-        {
-                // p2 is the minimum value,p1 is the parameter.
-                std::exponential_distribution<double> ed{D.p1};
-                for (auto i = 0; i < num; i += 1)
-                {
-                        //auto temp = D.p2 + ed(mt_engine);
-                        auto temp = ed(mt_engine);
-                        while(temp<0)
-                                temp = ed(mt_engine);
-                        temp += D.p2 ;
-                        P.times.push_back(temp);
-                }
-        }
-        else if (D.type == "uniform")
-        {
-                std::uniform_real_distribution<double> rd{D.p1, D.p2};
-                for (auto i = 0; i < num; i += 1)
-                {
-                        auto temp = rd(mt_engine);
-                        while(temp<0)
-                                temp = rd(mt_engine);
-                        P.times.push_back(temp);
-                }
-        }
-        else
-        {
-                std::cout << "Distribution " << D.type << "not supported." << std::endl;
-        }
-}
-void distributions::generateTimeHelper(int num)
-{
-        generateParticular(thinkTimeValues, thinkTime, num);
-        seed += 1;
-        generateParticular(serviceTimeValues, serviceTime, num);
-        seed += 1;
-        generateParticular(timeOutValues, timeOut, num);
-        seed += 1;
-}
-void distributions::readDistributionConfig(const pt::ptree &configTree)
+
+void state::updateStats()
 {
 
-        const pt::ptree &distributionTree = configTree.get_child("distribution");
-        const pt::ptree &thinkTimeTree = distributionTree.get_child("thinkTime");
-        const pt::ptree &timeOutTree = distributionTree.get_child("timeOut");
-        const pt::ptree &serviceTimeTree = distributionTree.get_child("serviceTime");
-        thinkTime.type = thinkTimeTree.get<std::string>("type");
-        thinkTime.p1 = thinkTimeTree.get<double>("p1");
-        thinkTime.p2 = thinkTimeTree.get<double>("p2");
-
-        serviceTime.type = serviceTimeTree.get<std::string>("type");
-        serviceTime.p1 = serviceTimeTree.get<double>("p1");
-        serviceTime.p2 = serviceTimeTree.get<double>("p2");
-
-        timeOut.type = timeOutTree.get<std::string>("type");
-        timeOut.p1 = timeOutTree.get<double>("p1");
-        timeOut.p2 = timeOutTree.get<double>("p2");
-
-        seed = distributionTree.get<uint32_t>("seed");
+    double timeSinceLastEvent = currentSimulationTime - timeOfLastEvent;
+    int serverQueueLength = S->Q.size();
+    int busyThreads = S->countBusyThreads();
+    M->areaNumInQueue = timeSinceLastEvent * serverQueueLength;
+    M->areaServerStatus = timeSinceLastEvent * ((busyThreads * 1.0) / S->numberThreads);
 }
-void Experiment::readExperimentConfig(const pt::ptree &configTree)
+void state::updateTimeandNextEvent()
 {
-
-        const pt::ptree &experimentTree = configTree.get_child("experiment");
-        runs = experimentTree.get<int>("runs");
-        requestsPerRun = experimentTree.get<int>("requestPerRun");
-}
-bool server::allocateThread(int &threadId)
-{
-        for (auto count = 0; count < numberThreads; count += 1)
-        {
-                if (threads[nextThread] == Status::IDLE)
-                {
-                        threads[nextThread] == Status::BUSY;
-                        threadId = nextThread;
-                        nextThread += 1;
-                        nextThread %= numberThreads;
-                        return true;
-                }
-                nextThread += 1;
-                if (nextThread == numberThreads)
-                {
-                        nextThread = 0;
-                }
-        }
-        threadId = -1;
-        return false;
-}
-void state::updateTimeandNextEvent() {
-        //Calculate time since last event and area
-        double timeSinceLastEvent = currentSimulationTime - timeOfLastEvent;
-        timeOfLastEvent = currentSimulationTime;
-        int numberInServerQueue = S->Q.size();
-        int busyThreads  = S->countBusyThreads();
-        areaNumInQueue = timeSinceLastEvent * numberInServerQueue ; 
-        areaServerStatus = timeSinceLastEvent * (busyThreads/ S->numberThreads);
-
-        // next event
-        nextEventObject = pq.top();
-        pq.pop();
-        nextEventType = nextEventObject.event;
+    //Calculate time since last event and area
+    timeOfLastEvent = currentSimulationTime;
+    nextEventObject = pq.top();
+    pq.pop();
+    nextEventType = nextEventObject.event;
+    currentSimulationTime = nextEventObject.timeStamp;
 }
 void state::arrival()
 {
-        int threadId;
-        currentSimulationTime = nextEventObject.timeStamp;
-        if (S->Q.size() == 0 && S->allocateThread(threadId))
-        {
-                // request given to a thread. calculate remaining time with context switchoverhead
-                auto serviceTime = D.getServiceTime();
-                auto remainingTime = serviceTime > S->timeSlice ?  serviceTime- S->timeSlice : 0.0;
-                auto newServiceTime = remainingTime > 0.0 ? S->timeSlice : serviceTime;
+    int threadId;
+    if (S->Q.size() == 0 && S->allocateThread(threadId))
+    {
+        auto serviceTime = D.getServiceTime();
+        auto remainingTime = serviceTime > S->timeSlice ? (serviceTime - S->timeSlice) : 0.0;
 
-                std::cout<<"Service time for this arrival is "<<serviceTime<<std::endl;
+        // std::cout << "Service time for this arrival is " << serviceTime << std::endl;
 
-                //get time at which this request will depart from server.
-                auto newTimeStamp = currentSimulationTime + newServiceTime +  S->contextSwitchOverhead;
-                Event N{eventType::DEPARTURE, newTimeStamp, nextEventObject.requestId, threadId, remainingTime, newTimeStamp};
-                requestsAtServer.insert(nextEventObject.requestId);
-                pq.push(N);
-                
-                // give a timeout event here
-                auto timeOut = currentSimulationTime + D.getTimeOut();
-                Event T{eventType::TIMEOUT,timeOut, nextEventObject.requestId,-1,0.0,nextEventObject.arrivalTimeStamp};
-                pq.push(T);
-        }
-        else if (S->Q.size() == S->queueCapacity)
-        {
-                M->droppedRequests.insert(nextEventObject.requestId);
-                //schedule TIMEOUT for this request.
-                auto timeOut = D.getTimeOut();
-                auto newTimeStamp = currentSimulationTime + timeOut;
-                Event N{eventType::TIMEOUT, newTimeStamp,nextEventObject.requestId, -1,0.0, nextEventObject.arrivalTimeStamp};
-                pq.push(N);
-                std::cout<<"Server Queue is full so scheduling departure for this ARRIVAL"<<std::endl;
-        }
-        else
-        {
-                //add request in server Queue
-                auto ServiceTime = D.getServiceTime();
-                queueObject tempObject{nextEventObject.requestId, nextEventObject.arrivalTimeStamp,ServiceTime};
-                S->Q.push_back(tempObject);
-                
-                // give a timeout event here
-                auto timeOut = D.getTimeOut();
-                Event N{eventType::TIMEOUT, timeOut, nextEventObject.requestId, -1, ServiceTime, nextEventObject.arrivalTimeStamp};
-                requestsAtServer.insert(nextEventObject.requestId);
-                pq.push(N);
+        //get time at which this request will depart from server.
+        double newTimeStamp = currentSimulationTime + std::min(remainingTime, S->timeSlice) + S->contextSwitchOverhead;
+        Event N{eventType::DEPARTURE, newTimeStamp, nextEventObject.requestId, threadId, remainingTime, nextEventObject.arrivalTimeStamp};
+        requestsAtServer.insert(nextEventObject.requestId);
+        pq.push(N);
 
-                std::cout<<"Added this request in the server queue, added TIMEOUT "<<std::endl;
-        }
-        
+        // give a timeout event here
+        auto timeOut = currentSimulationTime + D.getTimeOut();
+        Event T{eventType::TIMEOUT, timeOut, nextEventObject.requestId, -1, 0.0, nextEventObject.arrivalTimeStamp};
+        pq.push(T);
+    }
+    else if (S->Q.size() == S->queueCapacity)
+    {
+        M->droppedRequests.insert(nextEventObject.requestId);
+        //schedule TIMEOUT for this request.
+        auto timeOut = D.getTimeOut();
+        auto newTimeStamp = currentSimulationTime + timeOut;
+        Event N{eventType::TIMEOUT, newTimeStamp, nextEventObject.requestId, -1, 0.0, nextEventObject.arrivalTimeStamp};
+        pq.push(N);
+        std::cout << "Server Queue is full. Request is dropped. Timeout  event is added." << std::endl;
+    }
+    else
+    {
+        //add request in server Queue
+        auto ServiceTime = D.getServiceTime();
+        queueObject tempObject{nextEventObject.requestId, nextEventObject.arrivalTimeStamp, ServiceTime};
+        S->Q.push_back(tempObject);
+        // give a timeout event here
+        auto timeOut = D.getTimeOut();
+        Event N{eventType::TIMEOUT, timeOut, nextEventObject.requestId, -1, ServiceTime, nextEventObject.arrivalTimeStamp};
+        requestsAtServer.insert(nextEventObject.requestId);
+        pq.push(N);
+        std::cout << "Added this request in the server queue, added TIMEOUT " << std::endl;
+    }
 }
 
-void state::departure() {
-        currentSimulationTime = nextEventObject.timeStamp;
-        S->threads[nextEventObject.threadId] = Status::IDLE;
-        if(nextEventObject.remainingTime == 0.0)
-        {       
-                M->successfulRequests.insert(nextEventObject.requestId);
-                //calculate response time.
-                double responseTime = currentSimulationTime - nextEventObject.arrivalTimeStamp;
-                responseTimesPerRun.push_back(responseTime);
+void state::departure()
+{
+    S->threads[nextEventObject.threadId] = Status::IDLE;
+    if (std::abs(nextEventObject.remainingTime) <= 0.0001)
+    {
+        auto it = M->timedOutRequests.find(nextEventObject.requestId);
+        if (it == M->timedOutRequests.end())
+            M->successfulRequests.insert(nextEventObject.requestId);
+        //calculate response time.
+        double responseTime = currentSimulationTime - nextEventObject.arrivalTimeStamp;
+        responseTimesPerRun.push_back(responseTime);
+        //delete from requestsAtServer set
+        auto it2 = requestsAtServer.find(nextEventObject.requestId);
+        if (it2 != requestsAtServer.end())
+            requestsAtServer.erase(nextEventObject.requestId);
+        //schedule next Arrival from current time.
+        double newThinkTime = D.getThinkTime();
+        double newArrivalTime = currentSimulationTime + newThinkTime;
+        int requestId = M->requestsHandled;
+        M->requestsHandled += 1;
+        Event N{eventType::ARRIVAL, newArrivalTime, requestId, -1, 0.0, 0.0};
+        pq.push(N);
+    }
 
-                //delete from requestsAtServer set
-                requestsAtServer.erase(nextEventObject.requestId);
+    else if (S->Q.size() == S->queueCapacity)
+    {
+        //queue is full
+        //add request id in dropped requests, timeout event is already there in pq
+        M->droppedRequests.insert(nextEventObject.requestId);
+        if (requestsAtServer.find(nextEventObject.requestId) != requestsAtServer.end())
+            requestsAtServer.erase(nextEventObject.requestId);
+    }
+    else
+    {
+        //this case itself will handle S->Q.size()==0 condition.
+        //add this request in the Q
+        queueObject currentRequest{nextEventObject.requestId, currentSimulationTime, nextEventObject.remainingTime};
+        S->Q.push_back(currentRequest);
 
-                //schedule next Arrival from current time.
-                double newThinkTime = D.getThinkTime();
-                double newArrivalTime = currentSimulationTime + newThinkTime;
-                int requestId = M->requestsHandled;
-                M->requestsHandled+=1;
-                Event N{eventType::ARRIVAL,newArrivalTime,requestId,-1,0.0,0.0};
-                pq.push(N);
-        }
-        /*
-        else if(S->Q.size()==0){
-                //Queue is empty
-        }
-        */
-        else if(S->Q.size() == S->queueCapacity){
-                //queue is full
-                //add request id in dropped requests, timeout event is already there in pq
-                M->droppedRequests.insert(nextEventObject.requestId);
-                if(requestsAtServer.count(nextEventObject.requestId))
-                        requestsAtServer.erase(nextEventObject.requestId);
-                
-        }
-        else
-        {
-                //this case itself will handle S->Q.size()==0 condition.
-                //add this request in the Q
-                queueObject currentRequest{nextEventObject.requestId, nextEventObject.timeStamp, nextEventObject.remainingTime};
-                S->Q.push_back(currentRequest);
-
-                // take one request from Q and schedule for that request departure.
-                auto newRequest = S->Q.front();
-                int requestId = nextEventObject.requestId;
-                int threadId = nextEventObject.threadId;
-
-                //double timeStamp = nextEventObject.timeStamp;
-                double serviceTime = nextEventObject.remainingTime > S->timeSlice ? (nextEventObject.remainingTime - S->timeSlice) : nextEventObject.remainingTime;
-                double remainingTime = serviceTime > 0.0 ? serviceTime : 0.0;
-                double departureTime = serviceTime + currentSimulationTime;
-                Event N {eventType::DEPARTURE, departureTime, requestId, threadId, remainingTime, newRequest.arrivalTimeStamp };
-                pq.push(N);
-                S->Q.pop_front();
-                
-                
-        }
-}
-void state::requestTimeout() {
+        // take one request from Q and schedule for that request departure.
+        auto newRequest = S->Q.front();
         int requestId = nextEventObject.requestId;
-        //check if this request is present in dropped or successful request sets
-        if(!M->successfulRequests.count(requestId) && !M->droppedRequests.count(requestId))
-        {
-                currentSimulationTime = nextEventObject.timeStamp;
-                M->timedOutRequests.insert(requestId);
-                if(requestsAtServer.count(requestId))
-                        requestsAtServer.erase(requestId);
-        }
+        int threadId = nextEventObject.threadId;
+
+        //double timeStamp = nextEventObject.timeStamp;
+        double serviceTime = nextEventObject.remainingTime > S->timeSlice ? (nextEventObject.remainingTime - S->timeSlice) : nextEventObject.remainingTime;
+        double remainingTime = serviceTime > 0.0 ? serviceTime : 0.0;
+        double departureTime = serviceTime + currentSimulationTime;
+        Event N{eventType::DEPARTURE, departureTime, requestId, threadId, remainingTime, newRequest.arrivalTimeStamp};
+        pq.push(N);
+        S->Q.pop_front();
+    }
 }
-void state::printState() {}
-
-
-void state::initialize()
+void state::requestTimeout()
 {
-        M->requestsHandled = 0;
-        currentSimulationTime = 0.0;
-        timeOfLastEvent = 0.0;
-        areaNumInQueue = 0.0;
-        areaServerStatus = 0.;
-        M->timedOutRequests.empty();
-        M->droppedRequests.empty();
-        M->successfulRequests.empty();
-        S->initializeServer();
-        D.initialize();
-        generateTimes();
-        responseTimesPerRun.clear();
-        for (auto i = 0; i < C->numberOfUsers; i += 1)
-        {
-                double thinkTime = D.getThinkTime();
-                auto requestId = M->requestsHandled;
-                M->requestsHandled+=1;
-                Event N{eventType::ARRIVAL, thinkTime,requestId,-1,0.0,0.0 };
-                pq.push(N);
-                // double thinkTime = C->meanThinkTime;
-        }
-        std::cout<<"\nFinished Initialization\n"<<std::endl;
-        /*
-        for (auto i = 0; i < C->numberOfUsers; i += 1)
-        {
-                auto topElement = pq.top();
-                std::cout<<"request id: "<<topElement.requestId<<"  ,Think time: "<<topElement.timeStamp<<std::endl;
-                pq.pop();
-                // double thinkTime = C->meanThinkTime;
-        }
-        */
+    int requestId = nextEventObject.requestId;
+    //check if this request is present in dropped or successful request sets
+    auto its = M->successfulRequests.find(requestId);
+    auto itd = M->droppedRequests.find(requestId);
+    if ((its == M->successfulRequests.end()) && (itd == M->droppedRequests.end()))
+    {
+        M->timedOutRequests.insert(requestId);
+        if (requestsAtServer.find(requestId) != requestsAtServer.end())
+            requestsAtServer.erase(requestId);
+    }
 }
-
-void state::printConfig()
+void server::printServerState()
 {
-        C->printClientConfig();
-        //sleep(10);
-        S->printServerConfig();
-
-        //sleep(10);
-        E->printExperimentConfig();
-
-        //sleep(10);
-        D.printDistributionConfig();
-
-        //sleep(10);
+    for (auto i = 0; i < numberThreads; i += 1)
+    {
+        std::cout << i << "th thread: " << std::endl;
+        if (threads[i] == Status::IDLE)
+            std::cout << "IDLE ";
+        else
+            std::cout << "BUSY ";
+    }
+    std::cout << std::endl;
+    std::cout << "Queue At Server:" << std::endl;
+    std::cout << "Queue Size " << Q.size() << std::endl;
+    for (auto it = Q.begin(); it != Q.end(); ++it)
+        std::cout << "Request Id: " << it->requestId << "Arrival TimeStamp" << it->arrivalTimeStamp << std::endl;
 }
-
-void client::readClientConfig(const pt::ptree &configTree)
+void metrics::printMetrics()
 {
-        const pt::ptree &clientTree = configTree.get_child("clientStation");
-        numberOfUsers = clientTree.get<int>("numberOfUsers");
+    return;
 }
-void server::initializeServer()
+void state::printState()
 {
+    S->printServerState();
+    M->printMetrics();
+}
 
-        for (auto i = 0; i < numberThreads; i += 1)
-                threads.push_back(Status::IDLE);
-        nextThread = 0;
-}
-void server::readServerConfig(const pt::ptree &configTree)
-{
-        const pt::ptree &serverTree = configTree.get_child("serverStation");
-        contextSwitchOverhead = serverTree.get<double>("contextSwitchOverhead");
-        numberThreads = serverTree.get<int>("numberThreads");
-        queueCapacity = serverTree.get<int>("queueCapacity");
-        timeSlice = serverTree.get<double>("timeSlice");
-}
 int server::countBusyThreads()
 {
-        int count=0;
-        for (auto i=0; i < numberThreads; i++)
-        {
-                if( threads[i] == Status::BUSY)
-                        count++;
-        }
-        return count;
+    int count = 0;
+    for (auto i = 0; i < numberThreads; i++)
+    {
+        if (threads[i] == Status::BUSY)
+            count++;
+    }
+    return count;
 }
-void Experiment::printExperimentConfig()
-{
-        std::cout << "Experiment Config:" << std::endl;
-        std::cout << "runs = " << runs << std::endl;
-        std::cout << "requestsPerRun = " << requestsPerRun << std::endl;
-        std::cout << std::endl;
-}
-void client::printClientConfig()
-{
-        std::cout << "Client Config:" << std::endl;
-        std::cout << "numberOfUsers = " << numberOfUsers << std::endl;
-        std::cout << std::endl;
-}
-void server::printServerConfig()
-{
-        std::cout << "Server Config:" << std::endl;
-        std::cout << "numberThreads = " << numberThreads << std::endl;
-        std::cout << "nextThread = " << nextThread << std::endl;
-        std::cout << "queueCapacity = " << queueCapacity << std::endl;
-        std::cout << "contextSwitchOverhead = " << contextSwitchOverhead << std::endl;
-        std::cout << "Q.size() =  " << Q.size() << std::endl;
-        std::cout << "threads.size() =  " << threads.size() << std::endl;
-        for (auto i = 0; i < threads.size(); i += 1)
-        {
-                if (threads[i] == Status::IDLE)
-                {
-                        std::cout << i << "th thread is IDLE " << std::endl;
-                }
-        }
-        std::cout << "timeSlice =" << timeSlice << " seconds." << std::endl;
-        std::cout << std::endl;
-}
-void distributions::printDistributionConfig()
-{
 
-        std::cout << "Distribution Config:" << std::endl;
-
-        std::cout << "ThinkTime:" << std::endl;
-        std::cout << "Type:" << thinkTime.type << std::endl;
-        std::cout << "P1(mean):" << thinkTime.p1 << std::endl;
-        std::cout << "P2" << thinkTime.p2 << std::endl;
-
-        std::cout << "serviceTime:" << std::endl;
-        std::cout << "Type:" << serviceTime.type << std::endl;
-        std::cout << "P1(mean):" << serviceTime.p1 << std::endl;
-        std::cout << "P2" << serviceTime.p2 << std::endl;
-
-        std::cout << "timeOut:" << std::endl;
-        std::cout << "Type:" << timeOut.type << std::endl;
-        std::cout << "P1(mean):" << timeOut.p1 << std::endl;
-        std::cout << "P2" << timeOut.p2 << std::endl;
-
-        std::cout << std::endl;
-}
-void state::readConfig()
-{
-        pt::ptree configTree;
-        pt::read_json(CONFIG_FILE, configTree);
-        //reading client station
-        C->readClientConfig(configTree);
-        //reading server station
-        S->readServerConfig(configTree);
-        //reading Experiment parameters
-        E->readExperimentConfig(configTree);
-        // reading Distribution details
-        D.readDistributionConfig(configTree);
-}
 double distributions::getTime(preComputedTimes &P)
 {
-        auto temp = P.times[P.currentIndex];
-        P.currentIndex += 1;
-        P.currentIndex %= P.times.size();
-        return temp>0 ? temp : -1*temp;
+    auto temp = P.times[P.currentIndex];
+    P.currentIndex += 1;
+    P.currentIndex %= P.times.size();
+    return temp > 0 ? temp : -1 * temp;
 }
 double distributions::getThinkTime()
 {
-        return getTime(thinkTimeValues);
+    return getTime(thinkTimeValues);
 }
 
 double distributions::getServiceTime()
 {
-
-        return getTime(serviceTimeValues);
+    return getTime(serviceTimeValues);
 }
 double distributions::getTimeOut()
 {
-
-        return getTime(timeOutValues);
+    return getTime(timeOutValues);
 }
-void distributions::initialize()
+
+bool server::allocateThread(int &threadId)
 {
-        mt_engine.seed(seed);
-        pt::ptree configTree;
-        pt::read_json(CONFIG_FILE, configTree);
-        readDistributionConfig(configTree);
-        //printDistributionConfig();
+    for (auto count = 0; count < numberThreads; count += 1)
+    {
+        if (threads[nextThread] == Status::IDLE)
+        {
+            threads[nextThread] = Status::BUSY;
+            threadId = nextThread;
+            nextThread += 1;
+            nextThread %= numberThreads;
+            return true;
+        }
+        nextThread += 1;
+        if (nextThread == numberThreads)
+        {
+            nextThread = 0;
+        }
+    }
+    threadId = -1;
+    return false;
 }

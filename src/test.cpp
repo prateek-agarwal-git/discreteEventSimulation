@@ -70,6 +70,9 @@ int main()
         }
         abcd A(1);
         // std::cout<<A.i<<std::endl;
+        auto  x = 7
+        + 12;
+        std::cout<<x<<std::endl;
 
         return 0;
 }

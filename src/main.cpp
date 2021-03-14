@@ -5,7 +5,7 @@ int main()
         state S;
         int demo = 0;
         S.readConfig();
-        //S.initialize();
+        S.initializeResponseTimeVector();
         S.printConfig();
         S.generateTimes();
         //exit(0);
@@ -38,6 +38,7 @@ int main()
                                 sleep(3);
                                 break;
                         }
+                        S.updateStats();
                         std::cout<<"requestsHandled are:  "<<S.M->requestsHandled<<std::endl;
                         std::cout<<"\nQueue size is " <<S.S->Q.size()<<std::endl;
                 }

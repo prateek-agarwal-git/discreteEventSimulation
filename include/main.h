@@ -15,6 +15,8 @@
 #include <iostream>
 #include <ctime>
 #include <cstdint>
+#include <cmath>
+#include <cstdlib>
 namespace pt = boost::property_tree;
 enum class eventType
 {
@@ -37,7 +39,7 @@ struct Distribution
 struct Event
 {
         eventType event;
-        float timeStamp;
+        double timeStamp;
         int requestId;
         int threadId; 
         double remainingTime;
@@ -45,20 +47,15 @@ struct Event
 };
 struct metrics
 {
-        metrics() {}
-        metrics(int numRuns, int totalRequests)
+        metrics()
         {
-                for (int i = 0; i < totalRequests; i += 1)
-                {
-                        std::vector<double> temp{};
-                        for (int j = 0; j < numRuns; j += 1)
-                        {
-                                temp.push_back(-1.0);
-                                // -1.0 represent request drop
-                        }
-                        responseTimes.push_back(temp);
-                }
+                
         }
+        
+        void  initializeResponseTimes(int numRuns, int requestsPerRun);
+void printMetrics();
+        double areaNumInQueue;
+        double areaServerStatus;
         int requestsHandled;
         std::set<int> timedOutRequests;
         std::set<int>  successfulRequests;
@@ -100,7 +97,7 @@ struct server
         server() {}
 
         void initializeServer();
-
+        void printServerState();
         void readServerConfig(const pt::ptree &configTree);
         bool allocateThread(int &threadId);
         void printServerConfig();
@@ -110,7 +107,7 @@ struct server
         int nextThread;
         std::vector<Status> threads;
         double contextSwitchOverhead;
-        int queueCapacity;
+        uint64_t queueCapacity;
         double timeSlice;
 };
 struct preComputedTimes
@@ -158,14 +155,16 @@ struct state
         }
         std::priority_queue<Event, std::vector<Event>, compareTimestamps> pq;
         std::set<int> requestsAtServer;
+        std::vector<double>  responseTimesPerRun;
         double currentSimulationTime;
 
         double timeOfLastEvent;
-        double areaNumInQueue;
-        double areaServerStatus;
 
         Event nextEventObject;
         std::random_device rd;
+
+
+        void initializeResponseTimeVector();
         void arrival();
         void readConfig();
         void printConfig();
@@ -176,8 +175,9 @@ struct state
         void updateTimeandNextEvent();
         bool isAnyCoreIdle();
         void initialize();
-        std::unique_ptr<metrics> M;
 
+        void updateStats();
+        std::unique_ptr<metrics> M;
         std::unique_ptr<client> C;
         std::unique_ptr<server> S;
         distributions D;
