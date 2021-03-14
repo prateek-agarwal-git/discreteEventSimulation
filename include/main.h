@@ -158,6 +158,7 @@ struct state
         }
         std::priority_queue<Event, std::vector<Event>, compareTimestamps> pq;
         std::set<int> requestsAtServer;
+        std::vector<double>  responseTimesPerRun;
         double currentSimulationTime;
 
         double timeOfLastEvent;
@@ -166,6 +167,7 @@ struct state
 
         Event nextEventObject;
         std::random_device rd;
+
         void arrival();
         void readConfig();
         void printConfig();
@@ -176,8 +178,8 @@ struct state
         void updateTimeandNextEvent();
         bool isAnyCoreIdle();
         void initialize();
-        std::unique_ptr<metrics> M;
 
+        std::unique_ptr<metrics> M;
         std::unique_ptr<client> C;
         std::unique_ptr<server> S;
         distributions D;
