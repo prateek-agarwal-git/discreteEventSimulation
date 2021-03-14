@@ -39,7 +39,9 @@ struct Event
         eventType event;
         float timeStamp;
         int requestId;
-        int threadId; // this server should be made idle once the request departs. Departure
+        int threadId; 
+        double remainingTime;
+        double arrivalTimeStamp;// this server should be made idle once the request departs. Departure
 };
 struct metrics
 {
@@ -58,10 +60,10 @@ struct metrics
                 }
         }
         int requestsHandled;
-        int timedOutRequests;
-        int successfulRequests;
+        std::set<int> timedOutRequests;
+        std::set<int>  successfulRequests;
+        std::set<int>  droppedRequests;
         double coreUtilization;
-        int droppedRequests;
         std::vector<std::vector<double>> responseTimes;
 };
 struct client
@@ -91,6 +93,7 @@ struct queueObject
 {
         int requestId;
         double arrivalTimeStamp;
+        double remainingTime;
 };
 struct server
 {
@@ -101,6 +104,7 @@ struct server
         void readServerConfig(const pt::ptree &configTree);
         bool allocateThread(int &threadId);
         void printServerConfig();
+        int countBusyThreads();
         std::deque<queueObject> Q;
         int numberThreads;
         int nextThread;
@@ -155,6 +159,11 @@ struct state
         std::priority_queue<Event, std::vector<Event>, compareTimestamps> pq;
         std::set<int> requestsAtServer;
         double currentSimulationTime;
+
+        double timeOfLastEvent;
+        double areaNumInQueue;
+        double areaServerStatus;
+
         Event nextEventObject;
         std::random_device rd;
         void arrival();

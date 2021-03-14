@@ -1,6 +1,16 @@
-all: DES
-	./DES
-DES: src/main.cpp src/events.cpp include/main.h
-	g++ src/main.cpp src/events.cpp -o DES 
+CC = g++
+HEADER = include/main.h
+CFLAGS = -Wall
+
+
+all: events.o main.o
+	$(CC) $(CFLAGS) $^ -o $@
+
+events.o : src/events.cpp $(HEADER)
+	$(CC) -c -Wall $< -o $@
+
+main.o : src/main.cpp $(HEADER)
+	$(CC) -c -Wall $< -o $@
+	
 clean:
-	rm DES
+	rm -rf *o all

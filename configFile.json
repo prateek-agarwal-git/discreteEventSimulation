@@ -1,11 +1,11 @@
 {
         "clientStation": {
-                "numberOfUsers": 100
+                "numberOfUsers": 10
         },
         "serverStation": {
                 "contextSwitchOverhead": 0.001,
                 "numberThreads": 4,
-                "queueCapacity": 10,
+                "queueCapacity": 5,
                 "timeSlice": 0.01
         },
         "distribution": {
@@ -27,7 +27,7 @@
                 "seed": 102475
         },
         "experiment": {
-                "runs": 100,
-                "requestPerRun": 5000
+                "runs": 1,
+                "requestPerRun": 50
         }
 }
