@@ -178,6 +178,7 @@ void state::arrival()
 void state::departure() {
         currentSimulationTime = nextEventObject.timeStamp;
         S->threads[nextEventObject.threadId] = Status::IDLE;
+        std::cout<<"Request id is "<<nextEventObject.requestId<<std::endl;
         if(nextEventObject.remainingTime == 0.0)
         {       
                 M->successfulRequests.insert(nextEventObject.requestId);
@@ -195,6 +196,22 @@ void state::departure() {
                 M->requestsHandled+=1;
                 Event N{eventType::ARRIVAL,newArrivalTime,requestId,-1,0.0,0.0};
                 pq.push(N);
+                
+                // take one request from server queue and allocate IDLE thread to this new request
+                if(S->Q.size()!=0)
+                {
+                        auto newRequest = S->Q.front();
+                        int requestId = newRequest.requestId;
+                        int threadId = nextEventObject.threadId;
+
+                        //double timeStamp = nextEventObject.timeStamp;
+                        double serviceTime = newRequest.remainingTime > S->timeSlice ? (newRequest.remainingTime - S->timeSlice) : newRequest.remainingTime;
+                        double remainingTime = serviceTime > 0.0 ? serviceTime : 0.0;
+                        double departureTime = serviceTime + currentSimulationTime + S->contextSwitchOverhead;
+                        Event N {eventType::DEPARTURE, departureTime, requestId, threadId, remainingTime, newRequest.arrivalTimeStamp };
+                        pq.push(N);
+                        S->Q.pop_front();
+                }
         }
         /*
         else if(S->Q.size()==0){
@@ -208,6 +225,19 @@ void state::departure() {
                 if(requestsAtServer.count(nextEventObject.requestId))
                         requestsAtServer.erase(nextEventObject.requestId);
                 
+                //take one request from server queue and allocate IDLE thread to this new request.
+                auto newRequest = S->Q.front();
+                int requestId = newRequest.requestId;
+                int threadId = nextEventObject.threadId;
+
+                //double timeStamp = nextEventObject.timeStamp;
+                double serviceTime = newRequest.remainingTime > S->timeSlice ? (newRequest.remainingTime - S->timeSlice) : newRequest.remainingTime;
+                double remainingTime = serviceTime > 0.0 ? serviceTime : 0.0;
+                double departureTime = serviceTime + currentSimulationTime + S->contextSwitchOverhead;
+                Event N {eventType::DEPARTURE, departureTime, requestId, threadId, remainingTime, newRequest.arrivalTimeStamp };
+                pq.push(N);
+                S->Q.pop_front();
+                
         }
         else
         {
@@ -218,13 +248,13 @@ void state::departure() {
 
                 // take one request from Q and schedule for that request departure.
                 auto newRequest = S->Q.front();
-                int requestId = nextEventObject.requestId;
+                int requestId = newRequest.requestId;
                 int threadId = nextEventObject.threadId;
 
                 //double timeStamp = nextEventObject.timeStamp;
-                double serviceTime = nextEventObject.remainingTime > S->timeSlice ? (nextEventObject.remainingTime - S->timeSlice) : nextEventObject.remainingTime;
+                double serviceTime = newRequest.remainingTime > S->timeSlice ? (newRequest.remainingTime - S->timeSlice) : newRequest.remainingTime;
                 double remainingTime = serviceTime > 0.0 ? serviceTime : 0.0;
-                double departureTime = serviceTime + currentSimulationTime;
+                double departureTime = serviceTime + currentSimulationTime + S->contextSwitchOverhead;
                 Event N {eventType::DEPARTURE, departureTime, requestId, threadId, remainingTime, newRequest.arrivalTimeStamp };
                 pq.push(N);
                 S->Q.pop_front();
