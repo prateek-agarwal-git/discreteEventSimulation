@@ -2,7 +2,6 @@
 
 void state::updateStats()
 {
-
     double timeSinceLastEvent = currentSimulationTime - timeOfLastEvent;
     int serverQueueLength = S->Q.size();
     int busyThreads = S->countBusyThreads();
@@ -74,7 +73,7 @@ void state::departure()
             M->successfulRequests.insert(nextEventObject.requestId);
         //calculate response time.
         double responseTime = currentSimulationTime - nextEventObject.arrivalTimeStamp;
-        responseTimesPerRun.push_back(responseTime);
+        M->responseTimes[M->requestsHandled][M->currentRun] = responseTime; 
         //delete from requestsAtServer set
         auto it2 = requestsAtServer.find(nextEventObject.requestId);
         if (it2 != requestsAtServer.end())

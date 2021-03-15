@@ -10,21 +10,26 @@ void distributions::initialize()
 
 void metrics::initializeResponseTimes(int numRuns, int requestsPerRun)
 {
-    for (int i = 0; i < requestsPerRun; i += 1)
+    for (int i = 0; i < (requestsPerRun + 10); i += 1)
     {
+        //10 is just a buffer to avoid index out of bounds
         std::vector<double> temp{};
         for (int j = 0; j < numRuns; j += 1)
         {
             temp.push_back(-1.0);
-            // -1.0 represent request drop
         }
         responseTimes.push_back(temp);
     }
 }
 
-void state::initializeResponseTimeVector()
+void state::initializeStats()
 {
     M->initializeResponseTimes(E->runs, E->requestsPerRun);
+    M->accumulatedDroppedRequests = 0;
+    M->accumulatedTimedOutRequests = 0;
+    M->accumulatedDroppedRequests = 0;
+    M->accumulatedUtilization = 0.0;
+    M->accumulatedAverageNumberinQueue = 0.0;
 }
 void state::initialize()
 {
@@ -39,7 +44,6 @@ void state::initialize()
     S->initializeServer();
     D.initialize();
     generateTimes();
-    responseTimesPerRun.clear();
     for (auto i = 0; i < C->numberOfUsers; i += 1)
     {
         double thinkTime = D.getThinkTime();
@@ -47,7 +51,6 @@ void state::initialize()
         M->requestsHandled += 1;
         Event N{eventType::ARRIVAL, thinkTime, requestId, -1, 0.0, 0.0};
         pq.push(N);
-        // double thinkTime = C->meanThinkTime;
     }
     std::cout << "\nFinished Initialization\n"
               << std::endl;
@@ -104,4 +107,40 @@ void distributions::generateTimeHelper(int num)
 void state::generateTimes()
 {
     D.generateTimeHelper(E->requestsPerRun);
+}
+
+void state::writeStats()
+{
+    //writing point estimates
+    std::ofstream filePointStats("means.data", std::ios::out | std::ios::app);
+
+    auto goodPut = (M->accumulatedSuccesfulRequests * 1.0) / E->runs;
+    auto badPut = (M->accumulatedTimedOutRequests * 1.0) / E->runs;
+    auto droppedRequests = (M->accumulatedDroppedRequests * 1.0) / E->runs;
+    auto averageUtilization = M->accumulatedUtilization / E->runs;
+    auto averageQueueLength = M->accumulatedAverageNumberinQueue / E->runs;
+
+    filePointStats << "Goodput = " << std::setw(3) << goodPut << std::endl;
+    filePointStats << "Badput = " << std::setw(3) << badPut << std::endl;
+    filePointStats << "Dropped Requests = " << std::setw(3) << droppedRequests << std::endl;
+    filePointStats << "Average Utilization = " << std::setw(3) << averageUtilization << std::endl;
+    filePointStats << "Average Queue Length = " << std::setw(3) << averageQueueLength << std::endl;
+
+    // writing response Times
+    std::ofstream fileDelay("delayFile", std::ios::out | std::ios::app);
+    for (auto i = 0 ; i < E ->requestsPerRun; i+=1){
+        for (auto j = 0; j < E->runs; j+=1){
+            fileDelay << M->responseTimes[i][j]<< ",";
+        }
+        fileDelay << "\n";
+    }
+}
+
+void state::updateAccumulators()
+{
+    M->accumulatedDroppedRequests += M->droppedRequests.size();
+    M->accumulatedTimedOutRequests += M->timedOutRequests.size();
+    M->accumulatedSuccesfulRequests += M->successfulRequests.size();
+    M->accumulatedAverageNumberinQueue += ((1.0 * M->areaNumInQueue) / currentSimulationTime);
+    M->accumulatedUtilization += (1.0 * M->areaServerStatus) / currentSimulationTime;
 }

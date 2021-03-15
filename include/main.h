@@ -13,174 +13,179 @@
 #include <set>
 #include <exception>
 #include <iostream>
+#include <iomanip>
 #include <ctime>
 #include <cstdint>
 #include <cmath>
 #include <cstdlib>
+#include <fstream>
 namespace pt = boost::property_tree;
 enum class eventType
 {
-        ARRIVAL,
-        DEPARTURE,
-        TIMEOUT
+    ARRIVAL,
+    DEPARTURE,
+    TIMEOUT
 };
 
 enum class Status
 {
-        BUSY,
-        IDLE
+    BUSY,
+    IDLE
 };
 struct Distribution
 {
-        std::string type;
-        double p1;
-        double p2;
+    std::string type;
+    double p1;
+    double p2;
 };
 struct Event
 {
-        eventType event;
-        double timeStamp;
-        int requestId;
-        int threadId; 
-        double remainingTime;
-        double arrivalTimeStamp;// this server should be made idle once the request departs. Departure
+    eventType event;
+    double timeStamp;
+    int requestId;
+    int threadId;
+    double remainingTime;
+    double arrivalTimeStamp; // this server should be made idle once the request departs. Departure
 };
 struct metrics
 {
-        metrics()
-        {
-                
-        }
-        
-        void  initializeResponseTimes(int numRuns, int requestsPerRun);
-void printMetrics();
-        double areaNumInQueue;
-        double areaServerStatus;
-        int requestsHandled;
-        std::set<int> timedOutRequests;
-        std::set<int>  successfulRequests;
-        std::set<int>  droppedRequests;
-        double coreUtilization;
-        std::vector<std::vector<double>> responseTimes;
+    metrics()
+    {
+    }
+    void initializeResponseTimes(int numRuns, int requestsPerRun);
+    void printMetrics();
+    double areaNumInQueue;
+    double areaServerStatus;
+    int requestsHandled;
+    std::set<int> timedOutRequests;
+    std::set<int> successfulRequests;
+    std::set<int> droppedRequests;
+    double accumulatedUtilization;
+    double accumulatedAverageNumberinQueue;
+    int accumulatedTimedOutRequests;
+    int accumulatedSuccesfulRequests;
+    int accumulatedDroppedRequests;
+    int currentRun;
+    double coreUtilization;
+    std::vector<std::vector<double>> responseTimes;
 };
 struct client
 {
-        client() {}
-        void printClientConfig();
-        void readClientConfig(const pt::ptree &configTree);
-        int numberOfUsers;
+    client() {}
+    void printClientConfig();
+    void readClientConfig(const pt::ptree &configTree);
+    int numberOfUsers;
 };
 
 struct Experiment
 {
 
-        void printExperimentConfig();
-        void readExperimentConfig(const pt::ptree &configTree);
-        int runs;
-        int requestsPerRun;
+    void printExperimentConfig();
+    void readExperimentConfig(const pt::ptree &configTree);
+    int runs;
+    int requestsPerRun;
 };
 struct compareTimestamps
 {
-        bool operator()(Event const &e1, Event const &e2)
-        {
-                return e1.timeStamp > e2.timeStamp;
-        }
+    bool operator()(Event const &e1, Event const &e2)
+    {
+        return e1.timeStamp > e2.timeStamp;
+    }
 };
 struct queueObject
 {
-        int requestId;
-        double arrivalTimeStamp;
-        double remainingTime;
+    int requestId;
+    double arrivalTimeStamp;
+    double remainingTime;
 };
 struct server
 {
-        server() {}
+    server() {}
 
-        void initializeServer();
-        void printServerState();
-        void readServerConfig(const pt::ptree &configTree);
-        bool allocateThread(int &threadId);
-        void printServerConfig();
-        int countBusyThreads();
-        std::deque<queueObject> Q;
-        int numberThreads;
-        int nextThread;
-        std::vector<Status> threads;
-        double contextSwitchOverhead;
-        uint64_t queueCapacity;
-        double timeSlice;
+    void initializeServer();
+    void printServerState();
+    void readServerConfig(const pt::ptree &configTree);
+    bool allocateThread(int &threadId);
+    void printServerConfig();
+    int countBusyThreads();
+    std::deque<queueObject> Q;
+    int numberThreads;
+    int nextThread;
+    std::vector<Status> threads;
+    double contextSwitchOverhead;
+    uint64_t queueCapacity;
+    double timeSlice;
 };
 struct preComputedTimes
 {
-        std::vector<double> times{};
-        int currentIndex;
+    std::vector<double> times{};
+    int currentIndex;
 };
 
 struct distributions
 {
-        distributions()
-        {
-        }
-        double getThinkTime();
-        double getServiceTime();
-        double getTimeOut();
-        uint32_t seed;
-        void readDistributionConfig(const pt::ptree &configTree);
+    distributions()
+    {
+    }
+    double getThinkTime();
+    double getServiceTime();
+    double getTimeOut();
+    uint32_t seed;
+    void readDistributionConfig(const pt::ptree &configTree);
 
-        double getTime(preComputedTimes &P);
-        void generateParticular(preComputedTimes &P, Distribution &D, int num);
-        void generateTimeHelper(int);
-        void initialize();
-        void printDistributionConfig();
-        preComputedTimes thinkTimeValues;
-        preComputedTimes serviceTimeValues;
-        preComputedTimes timeOutValues;
-        std::mt19937_64 mt_engine;
-        Distribution thinkTime;
-        Distribution serviceTime;
-        Distribution timeOut;
+    double getTime(preComputedTimes &P);
+    void generateParticular(preComputedTimes &P, Distribution &D, int num);
+    void generateTimeHelper(int);
+    void initialize();
+    void printDistributionConfig();
+    preComputedTimes thinkTimeValues;
+    preComputedTimes serviceTimeValues;
+    preComputedTimes timeOutValues;
+    std::mt19937_64 mt_engine;
+    Distribution thinkTime;
+    Distribution serviceTime;
+    Distribution timeOut;
 };
 struct state
 {
-        state()
-        {
-                std::unique_ptr<server> tempS{new server};
-                S = std::move(tempS);
-                std::unique_ptr<client> tempC{new client};
-                C = std::move(tempC);
-                std::unique_ptr<metrics> tempM{new metrics};
-                M = std::move(tempM);
-                std::unique_ptr<Experiment> tempE{new Experiment};
-                E = std::move(tempE);
-        }
-        std::priority_queue<Event, std::vector<Event>, compareTimestamps> pq;
-        std::set<int> requestsAtServer;
-        std::vector<double>  responseTimesPerRun;
-        double currentSimulationTime;
+    state()
+    {
+        std::unique_ptr<server> tempS{new server};
+        S = std::move(tempS);
+        std::unique_ptr<client> tempC{new client};
+        C = std::move(tempC);
+        std::unique_ptr<metrics> tempM{new metrics};
+        M = std::move(tempM);
+        std::unique_ptr<Experiment> tempE{new Experiment};
+        E = std::move(tempE);
+    }
+    std::priority_queue<Event, std::vector<Event>, compareTimestamps> pq;
+    std::set<int> requestsAtServer;
+    double currentSimulationTime;
+    double timeOfLastEvent;
 
-        double timeOfLastEvent;
+    void updateAccumulators();
+    void writeStats();
+    Event nextEventObject;
+    std::random_device rd;
 
-        Event nextEventObject;
-        std::random_device rd;
+    void initializeStats();
+    void arrival();
+    void readConfig();
+    void printConfig();
+    void departure();
+    void requestTimeout();
+    void generateTimes();
+    void printState();
+    void updateTimeandNextEvent();
+    bool isAnyCoreIdle();
+    void initialize();
 
-
-        void initializeResponseTimeVector();
-        void arrival();
-        void readConfig();
-        void printConfig();
-        void departure();
-        void requestTimeout();
-        void generateTimes();
-        void printState();
-        void updateTimeandNextEvent();
-        bool isAnyCoreIdle();
-        void initialize();
-
-        void updateStats();
-        std::unique_ptr<metrics> M;
-        std::unique_ptr<client> C;
-        std::unique_ptr<server> S;
-        distributions D;
-        std::unique_ptr<Experiment> E;
-        eventType nextEventType;
+    void updateStats();
+    std::unique_ptr<metrics> M;
+    std::unique_ptr<client> C;
+    std::unique_ptr<server> S;
+    distributions D;
+    std::unique_ptr<Experiment> E;
+    eventType nextEventType;
 };
