@@ -181,6 +181,7 @@ void state::departure() {
         std::cout<<"Request id is "<<nextEventObject.requestId<<std::endl;
         if(nextEventObject.remainingTime == 0.0)
         {       
+                std::cout<<" request id "<<nextEventObject.requestId<<" has finished"<<std::endl;
                 M->successfulRequests.insert(nextEventObject.requestId);
                 //calculate response time.
                 double responseTime = currentSimulationTime - nextEventObject.arrivalTimeStamp;
@@ -243,7 +244,8 @@ void state::departure() {
         {
                 //this case itself will handle S->Q.size()==0 condition.
                 //add this request in the Q
-                queueObject currentRequest{nextEventObject.requestId, nextEventObject.timeStamp, nextEventObject.remainingTime};
+                std::cout<<"remaining time for "<<nextEventObject.requestId<<" is "<<nextEventObject.remainingTime<<std::endl;
+                queueObject currentRequest{nextEventObject.requestId, nextEventObject.arrivalTimeStamp, nextEventObject.remainingTime};
                 S->Q.push_back(currentRequest);
 
                 // take one request from Q and schedule for that request departure.
@@ -253,9 +255,10 @@ void state::departure() {
 
                 //double timeStamp = nextEventObject.timeStamp;
                 double serviceTime = newRequest.remainingTime > S->timeSlice ? (newRequest.remainingTime - S->timeSlice) : newRequest.remainingTime;
-                double remainingTime = serviceTime > 0.0 ? serviceTime : 0.0;
+                double remainingTime = serviceTime > S->timeSlice ? serviceTime : 0.0;
                 double departureTime = serviceTime + currentSimulationTime + S->contextSwitchOverhead;
                 Event N {eventType::DEPARTURE, departureTime, requestId, threadId, remainingTime, newRequest.arrivalTimeStamp };
+                std::cout<<"updated remaining time is "<<N.remainingTime<<std::endl;
                 pq.push(N);
                 S->Q.pop_front();
                 
