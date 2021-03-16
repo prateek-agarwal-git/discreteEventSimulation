@@ -30,7 +30,7 @@ void state::arrival()
     {
         auto serviceTime = D.getServiceTime();
         auto remainingTime = std::max((serviceTime - S->timeSlice), 0.0);
-        double nextTimeStamp = currentSimulationTime + std::min(remainingTime, S->timeSlice) + S->contextSwitchOverhead;
+        double nextTimeStamp = currentSimulationTime + std::min(serviceTime, S->timeSlice) + S->contextSwitchOverhead;
         Event N{eventType::DEPARTURE, nextTimeStamp, requestId,
                 threadId, remainingTime, arrivalTimeStamp};
         requestsAtServer.insert(nextEventObject.requestId);
@@ -51,49 +51,49 @@ void state::arrival()
 
 void state::departure()
 {
-    S->threads[nextEventObject.threadId] = Status::IDLE;
-    if (std::abs(nextEventObject.remainingTime) <= 0.0001)
+    int threadId = nextEventObject.threadId;
+    auto requestId = nextEventObject.requestId;
+    auto arrivalTimeStamp = nextEventObject.arrivalTimeStamp;
+    auto remainingTime = nextEventObject.remainingTime;
+    if (std::abs(remainingTime) <= 0.0001)
     {
-        auto it = M->timedOutRequests.find(nextEventObject.requestId);
+        auto it = M->timedOutRequests.find(requestId);
         if (it == M->timedOutRequests.end())
-            M->successfulRequests.insert(nextEventObject.requestId);
+            M->successfulRequests.insert(requestId);
 
-        double responseTime = currentSimulationTime - nextEventObject.arrivalTimeStamp;
+        double responseTime = currentSimulationTime - arrivalTimeStamp;
         M->responseTimes[M->requestsHandled][M->currentRun] = responseTime;
 
-        auto it2 = requestsAtServer.find(nextEventObject.requestId);
+        auto it2 = requestsAtServer.find(requestId);
         if (it2 != requestsAtServer.end())
-            requestsAtServer.erase(nextEventObject.requestId);
+            requestsAtServer.erase(it2);
 
-        double newThinkTime = D.getThinkTime();
-        double newArrivalTime = currentSimulationTime + newThinkTime;
+        S->threads[threadId] = Status::IDLE;
+        auto newThinkTime = D.getThinkTime();
+        auto newArrivalTime = currentSimulationTime + newThinkTime;
         int requestId = M->requestsHandled;
         M->requestsHandled += 1;
         Event N{eventType::ARRIVAL, newArrivalTime, requestId, -1, 0.0, newArrivalTime};
         pq.push(N);
     }
-
-    else if (S->Q.size() == S->queueCapacity)
-    {
-        M->droppedRequests.insert(nextEventObject.requestId);
-        if (requestsAtServer.find(nextEventObject.requestId) != requestsAtServer.end())
-            requestsAtServer.erase(nextEventObject.requestId);
-    }
     else
     {
-        queueObject currentRequest{nextEventObject.requestId, currentSimulationTime, nextEventObject.remainingTime};
+        queueObject currentRequest{requestId, arrivalTimeStamp, remainingTime};
         S->Q.push_back(currentRequest);
+    }
 
-        auto newRequest = S->Q.front();
-        int requestId = nextEventObject.requestId;
-        int threadId = nextEventObject.threadId;
-
-        double serviceTime = nextEventObject.remainingTime > S->timeSlice ? (nextEventObject.remainingTime - S->timeSlice) : nextEventObject.remainingTime;
-        double remainingTime = serviceTime > 0.0 ? serviceTime : 0.0;
-        double departureTime = serviceTime + currentSimulationTime;
-        Event N{eventType::DEPARTURE, departureTime, requestId, threadId, remainingTime, newRequest.arrivalTimeStamp};
-        pq.push(N);
+    if (S->Q.empty() == false)
+    {
+        auto nextRequest = S->Q.front();
         S->Q.pop_front();
+        auto requestId = nextRequest.requestId;
+        S->threads[threadId] = Status::BUSY;
+        auto currentServiceQuantum = std::min(nextRequest.remainingTime, S->timeSlice);
+        auto remainingServiceTime = std::max(0.0, nextRequest.remainingTime - S->timeSlice);
+        auto nextTimeStamp = currentSimulationTime + currentServiceQuantum + S->contextSwitchOverhead;
+        Event N{eventType::DEPARTURE, nextTimeStamp,
+                requestId, threadId, remainingServiceTime, nextRequest.arrivalTimeStamp};
+        pq.push(N);
     }
 }
 void state::requestTimeout()
@@ -106,6 +106,12 @@ void state::requestTimeout()
         M->timedOutRequests.insert(requestId);
         if (requestsAtServer.find(requestId) != requestsAtServer.end())
             requestsAtServer.erase(requestId);
+        double newThinkTime = D.getThinkTime();
+        double newArrivalTime = currentSimulationTime + newThinkTime;
+        int requestId = M->requestsHandled;
+        M->requestsHandled += 1;
+        Event N{eventType::ARRIVAL, newArrivalTime, requestId, -1, 0.0, newArrivalTime};
+        pq.push(N);
     }
 }
 void server::printServerState()
