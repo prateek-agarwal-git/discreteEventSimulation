@@ -10,7 +10,6 @@ void state::updateStats()
 }
 void state::updateTimeandNextEvent()
 {
-    //Calculate time since last event and area
     timeOfLastEvent = currentSimulationTime;
     nextEventObject = pq.top();
     pq.pop();
@@ -20,46 +19,33 @@ void state::updateTimeandNextEvent()
 void state::arrival()
 {
     int threadId;
+    auto requestId = nextEventObject.requestId;
+    auto arrivalTimeStamp = nextEventObject.arrivalTimeStamp;
+    auto timeOut = currentSimulationTime + D.getTimeOut();
+    auto newTimeStamp = currentSimulationTime + timeOut;
+    Event T{eventType::TIMEOUT, newTimeStamp, requestId,
+            -1, 0.0, arrivalTimeStamp};
+    pq.push(T);
     if (S->Q.size() == 0 && S->allocateThread(threadId))
     {
         auto serviceTime = D.getServiceTime();
-        auto remainingTime = serviceTime > S->timeSlice ? (serviceTime - S->timeSlice) : 0.0;
-
-        // std::cout << "Service time for this arrival is " << serviceTime << std::endl;
-
-        //get time at which this request will depart from server.
-        double newTimeStamp = currentSimulationTime + std::min(remainingTime, S->timeSlice) + S->contextSwitchOverhead;
-        Event N{eventType::DEPARTURE, newTimeStamp, nextEventObject.requestId, threadId, remainingTime, nextEventObject.arrivalTimeStamp};
+        auto remainingTime = std::max((serviceTime - S->timeSlice), 0.0);
+        double nextTimeStamp = currentSimulationTime + std::min(remainingTime, S->timeSlice) + S->contextSwitchOverhead;
+        Event N{eventType::DEPARTURE, nextTimeStamp, requestId,
+                threadId, remainingTime, arrivalTimeStamp};
         requestsAtServer.insert(nextEventObject.requestId);
         pq.push(N);
-
-        // give a timeout event here
-        auto timeOut = currentSimulationTime + D.getTimeOut();
-        Event T{eventType::TIMEOUT, timeOut, nextEventObject.requestId, -1, 0.0, nextEventObject.arrivalTimeStamp};
-        pq.push(T);
     }
     else if (S->Q.size() == S->queueCapacity)
     {
-        M->droppedRequests.insert(nextEventObject.requestId);
-        //schedule TIMEOUT for this request.
-        auto timeOut = D.getTimeOut();
-        auto newTimeStamp = currentSimulationTime + timeOut;
-        Event N{eventType::TIMEOUT, newTimeStamp, nextEventObject.requestId, -1, 0.0, nextEventObject.arrivalTimeStamp};
-        pq.push(N);
-        std::cout << "Server Queue is full. Request is dropped. Timeout  event is added." << std::endl;
+        M->droppedRequests.insert(requestId);
     }
     else
     {
-        //add request in server Queue
         auto ServiceTime = D.getServiceTime();
-        queueObject tempObject{nextEventObject.requestId, nextEventObject.arrivalTimeStamp, ServiceTime};
+        queueObject tempObject{requestId, arrivalTimeStamp, ServiceTime};
         S->Q.push_back(tempObject);
-        // give a timeout event here
-        auto timeOut = D.getTimeOut();
-        Event N{eventType::TIMEOUT, timeOut, nextEventObject.requestId, -1, ServiceTime, nextEventObject.arrivalTimeStamp};
         requestsAtServer.insert(nextEventObject.requestId);
-        pq.push(N);
-        std::cout << "Added this request in the server queue, added TIMEOUT " << std::endl;
     }
 }
 
@@ -71,43 +57,37 @@ void state::departure()
         auto it = M->timedOutRequests.find(nextEventObject.requestId);
         if (it == M->timedOutRequests.end())
             M->successfulRequests.insert(nextEventObject.requestId);
-        //calculate response time.
+
         double responseTime = currentSimulationTime - nextEventObject.arrivalTimeStamp;
-        M->responseTimes[M->requestsHandled][M->currentRun] = responseTime; 
-        //delete from requestsAtServer set
+        M->responseTimes[M->requestsHandled][M->currentRun] = responseTime;
+
         auto it2 = requestsAtServer.find(nextEventObject.requestId);
         if (it2 != requestsAtServer.end())
             requestsAtServer.erase(nextEventObject.requestId);
-        //schedule next Arrival from current time.
+
         double newThinkTime = D.getThinkTime();
         double newArrivalTime = currentSimulationTime + newThinkTime;
         int requestId = M->requestsHandled;
         M->requestsHandled += 1;
-        Event N{eventType::ARRIVAL, newArrivalTime, requestId, -1, 0.0, 0.0};
+        Event N{eventType::ARRIVAL, newArrivalTime, requestId, -1, 0.0, newArrivalTime};
         pq.push(N);
     }
 
     else if (S->Q.size() == S->queueCapacity)
     {
-        //queue is full
-        //add request id in dropped requests, timeout event is already there in pq
         M->droppedRequests.insert(nextEventObject.requestId);
         if (requestsAtServer.find(nextEventObject.requestId) != requestsAtServer.end())
             requestsAtServer.erase(nextEventObject.requestId);
     }
     else
     {
-        //this case itself will handle S->Q.size()==0 condition.
-        //add this request in the Q
         queueObject currentRequest{nextEventObject.requestId, currentSimulationTime, nextEventObject.remainingTime};
         S->Q.push_back(currentRequest);
 
-        // take one request from Q and schedule for that request departure.
         auto newRequest = S->Q.front();
         int requestId = nextEventObject.requestId;
         int threadId = nextEventObject.threadId;
 
-        //double timeStamp = nextEventObject.timeStamp;
         double serviceTime = nextEventObject.remainingTime > S->timeSlice ? (nextEventObject.remainingTime - S->timeSlice) : nextEventObject.remainingTime;
         double remainingTime = serviceTime > 0.0 ? serviceTime : 0.0;
         double departureTime = serviceTime + currentSimulationTime;
@@ -119,7 +99,6 @@ void state::departure()
 void state::requestTimeout()
 {
     int requestId = nextEventObject.requestId;
-    //check if this request is present in dropped or successful request sets
     auto its = M->successfulRequests.find(requestId);
     auto itd = M->droppedRequests.find(requestId);
     if ((its == M->successfulRequests.end()) && (itd == M->droppedRequests.end()))
