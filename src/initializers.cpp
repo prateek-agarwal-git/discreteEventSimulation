@@ -35,7 +35,7 @@ void state::initializeStats()
 void state::initialize()
 {
     M->requestsHandled = 0;
-    
+    M->requestsDepartedorDropped = 0;
     currentSimulationTime = 0.0;
     timeOfLastEvent = 0.0;
     M->areaNumInQueue = 0.0;
@@ -46,6 +46,11 @@ void state::initialize()
     S->initializeServer();
     D.initialize();
     generateTimes();
+    while (pq.empty() == false){
+        pq.pop();
+    }
+    // std::cout << pq.size()<<std::endl;
+    
     for (auto i = 0; i < C->numberOfUsers; i += 1)
     {
         double thinkTime = D.getThinkTime();
@@ -54,8 +59,6 @@ void state::initialize()
         Event N{eventType::ARRIVAL, thinkTime, requestId, -1, 0.0, thinkTime};
         pq.push(N);
     }
-    std::cout << "\nFinished Initialization\n"
-              << std::endl;
 }
 void distributions::generateParticular(preComputedTimes &P, Distribution &D, int num)
 {
@@ -68,7 +71,7 @@ void distributions::generateParticular(preComputedTimes &P, Distribution &D, int
         for (auto i = 0; i < num; i += 1)
         {
             auto temp = nd(mt_engine);
-            while (temp < 0)
+            while (temp <= 0)
                 temp = nd(mt_engine);
             P.times.push_back(temp);
         }
@@ -147,7 +150,10 @@ void state::updateAccumulators()
     M->accumulatedSuccesfulRequests += M->successfulRequests.size();
     M->accumulatedAverageNumberinQueue += ((1.0 * M->areaNumInQueue) / currentSimulationTime);
     M->accumulatedUtilization += (1.0 * M->areaServerStatus) / currentSimulationTime;
-    std::cout << currentSimulationTime << std::endl;
-    std::cout << M->areaServerStatus << std::endl;
-    std::cout << M->testTime << std::endl;
+
 }
+
+    // std::cout << M->droppedRequests.size()<< std::endl;
+ //   std::cout << currentSimulationTime << std::endl;
+ //   std::cout << M->areaServerStatus << std::endl;
+ //   std::cout << M->testTime << std::endl;

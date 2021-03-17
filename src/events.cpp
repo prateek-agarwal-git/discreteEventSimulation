@@ -3,11 +3,9 @@
 void state::updateStats()
 {
     double timeSinceLastEvent = currentSimulationTime - timeOfLastEvent;
-    M->testTime+=timeSinceLastEvent;
+    M->testTime += timeSinceLastEvent;
     int serverQueueLength = S->Q.size();
     int busyThreads = S->countBusyThreads();
-    std::cout<<busyThreads<<std::endl;
-std::cout<<S->numberThreads<<std::endl;
     M->areaNumInQueue += timeSinceLastEvent * serverQueueLength;
     M->areaServerStatus += timeSinceLastEvent * ((busyThreads * 1.0) / S->numberThreads);
 }
@@ -24,7 +22,8 @@ void state::arrival()
     int threadId;
     auto requestId = nextEventObject.requestId;
     auto arrivalTimeStamp = nextEventObject.arrivalTimeStamp;
-    auto timeOut = currentSimulationTime + D.getTimeOut();
+    auto timeOut = D.getTimeOut();
+
     auto newTimeStamp = currentSimulationTime + timeOut;
     Event T{eventType::TIMEOUT, newTimeStamp, requestId,
             -1, 0.0, arrivalTimeStamp};
@@ -39,14 +38,14 @@ void state::arrival()
         requestsAtServer.insert(nextEventObject.requestId);
         pq.push(N);
     }
-    else if (S->Q.size() == S->queueCapacity)
+    else if (S->Q.size() >= S->queueCapacity)
     {
         M->droppedRequests.insert(requestId);
     }
     else
     {
-        auto ServiceTime = D.getServiceTime();
-        queueObject tempObject{requestId, arrivalTimeStamp, ServiceTime};
+        auto serviceTime = D.getServiceTime();
+        queueObject tempObject{requestId, arrivalTimeStamp, serviceTime};
         S->Q.push_back(tempObject);
         requestsAtServer.insert(nextEventObject.requestId);
     }
@@ -58,7 +57,7 @@ void state::departure()
     auto requestId = nextEventObject.requestId;
     auto arrivalTimeStamp = nextEventObject.arrivalTimeStamp;
     auto remainingTime = nextEventObject.remainingTime;
-    if (std::abs(remainingTime) <= 0.0001)
+    if (std::abs(remainingTime) <= 0.00001)
     {
         auto it = M->timedOutRequests.find(requestId);
         if (it == M->timedOutRequests.end())
@@ -66,7 +65,7 @@ void state::departure()
 
         double responseTime = currentSimulationTime - arrivalTimeStamp;
         M->responseTimes[requestId][M->currentRun] = responseTime;
-
+        M->requestsDepartedorDropped += 1;
         auto it2 = requestsAtServer.find(requestId);
         if (it2 != requestsAtServer.end())
             requestsAtServer.erase(it2);
@@ -74,6 +73,7 @@ void state::departure()
         S->threads[threadId] = Status::IDLE;
         auto newThinkTime = D.getThinkTime();
         auto newArrivalTime = currentSimulationTime + newThinkTime;
+        // std::cout << "The ne"
         int requestId = M->requestsHandled;
         M->requestsHandled += 1;
         Event N{eventType::ARRIVAL, newArrivalTime, requestId, -1, 0.0, newArrivalTime};
@@ -103,12 +103,14 @@ void state::requestTimeout()
     int requestId = nextEventObject.requestId;
     auto its = M->successfulRequests.find(requestId);
     auto itd = M->droppedRequests.find(requestId);
+    auto it = requestsAtServer.find(requestId);
+    if (it != requestsAtServer.end())
+        requestsAtServer.erase(it);
     if ((its == M->successfulRequests.end()) && (itd == M->droppedRequests.end()))
-    {
         M->timedOutRequests.insert(requestId);
-        auto it =requestsAtServer.find(requestId);
-        if (it != requestsAtServer.end())
-            requestsAtServer.erase(it);
+    if (itd != M->droppedRequests.end())
+    {
+        M->requestsDepartedorDropped += 1;
         double newThinkTime = D.getThinkTime();
         double newArrivalTime = currentSimulationTime + newThinkTime;
         int requestId = M->requestsHandled;
@@ -117,6 +119,7 @@ void state::requestTimeout()
         pq.push(N);
     }
 }
+
 void server::printServerState()
 {
     for (auto i = 0; i < numberThreads; i += 1)
@@ -139,8 +142,8 @@ void metrics::printMetrics()
 }
 void state::printState()
 {
-    S->printServerState();
     M->printMetrics();
+    // S->printServerState();
 }
 
 int server::countBusyThreads()
@@ -159,7 +162,7 @@ double distributions::getTime(preComputedTimes &P)
     auto temp = P.times[P.currentIndex];
     P.currentIndex += 1;
     P.currentIndex %= P.times.size();
-    return temp > 0 ? temp : -1 * temp;
+    return temp;
 }
 double distributions::getThinkTime()
 {
@@ -196,3 +199,19 @@ bool server::allocateThread(int &threadId)
     threadId = -1;
     return false;
 }
+// if ((requestId == 17) && (M->currentRun == 4))
+// {
+//     std::cout<< "hi The priority queue size is"<<std::endl;
+//     std::cout << pq.size() << std::endl;
+//     exit(0);
+// }
+// if ((M->currentRun == 4) && (requestId == 17))
+// {
+//     std::cout << "The timeout is " << timeOut << std::endl;
+//     //    // exit(0);
+//     std::cout << pq.size() << std::endl;
+//     //    exit(0);
+// }
+//    std::cout << nextEventObject.requestId << std::endl;
+//    std::cout << nextEventObject.timeStamp << std::endl;
+// std::cout<< "the size of priority queue is " <<pq.size()<<std::endl;

@@ -3,7 +3,6 @@
 int main()
 {
     state S;
-    int demo = 0;
     S.readConfig();
     S.initializeStats();
     S.printConfig();
@@ -15,31 +14,48 @@ int main()
         S.initialize();
         while (S.M->requestsHandled < S.E->requestsPerRun)
         {
-            if (demo)
-                S.printState();
             S.updateTimeandNextEvent();
+            // S.printState();
+
             switch (S.nextEventType)
             {
             case eventType::ARRIVAL:
                 S.arrival();
-                // std::cout << "ARRIVAL " << std::endl;
-                //sleep(3);
                 break;
             case eventType::DEPARTURE:
                 S.departure();
-                // std::cout << "DEPARTURE " << std::endl;
-                //sleep(3);
                 break;
             case eventType::TIMEOUT:
                 S.requestTimeout();
-                // std::cout << "TIMEOUT " << std::endl;
-            //    sleep(3);
                 break;
             }
             S.updateStats();
         }
-            S.updateAccumulators();
+        S.updateAccumulators();
     }
     S.writeStats();
     return 0;
 }
+// S.printState();
+//if (S.pq.size()== 0){
+//    // std::cout<<"this should not happen"<<std::endl;
+//    S.updateStats();
+//    // exit(0);
+//    break;
+//}
+// std
+//if (S.pq.size() == 0)
+//            {
+//                std::cout << "this should not happen" << std::endl;
+//                std::cout << "currentRun = " << i << std::endl;
+//                std::cout << "server queue size = " << S.S->Q.size() << std::endl;
+//                S.updateStats();
+//                exit(0);
+//                break;
+//            }
+
+// std::cout << "ARRIVAL " << std::endl;
+
+// std::cout << "DEPARTURE " << std::endl;
+
+// std::cout << "TIMEOUT " << std::endl;

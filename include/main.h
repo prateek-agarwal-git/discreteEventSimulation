@@ -58,6 +58,7 @@ struct metrics
     double areaServerStatus;
     double testTime;
     int requestsHandled;
+    int requestsDepartedorDropped;
     std::set<int> timedOutRequests;
     std::set<int> successfulRequests;
     std::set<int> droppedRequests;
@@ -179,7 +180,7 @@ struct state
     void generateTimes();
     void printState();
     void updateTimeandNextEvent();
-    bool isAnyCoreIdle();
+    // bool isAnyCoreIdle();
     void initialize();
 
     void updateStats();

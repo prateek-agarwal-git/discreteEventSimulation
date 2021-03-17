@@ -1,4 +1,3 @@
-
 #include "../include/main.h"
 #define CONFIG_FILE "configFile.json"
 void state::printConfig()
@@ -20,7 +19,8 @@ void client::readClientConfig(const pt::ptree &configTree)
 }
 void server::initializeServer()
 {
-
+    threads.clear();
+    Q.clear();
     for (auto i = 0; i < numberThreads; i += 1)
         threads.push_back(Status::IDLE);
     nextThread = 0;
@@ -123,7 +123,6 @@ void distributions::readDistributionConfig(const pt::ptree &configTree)
 }
 void Experiment::readExperimentConfig(const pt::ptree &configTree)
 {
-
     const pt::ptree &experimentTree = configTree.get_child("experiment");
     runs = experimentTree.get<int>("runs");
     requestsPerRun = experimentTree.get<int>("requestPerRun");

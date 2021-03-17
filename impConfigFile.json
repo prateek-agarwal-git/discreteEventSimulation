@@ -5,7 +5,7 @@
         "serverStation": {
                 "contextSwitchOverhead": 0.01,
                 "numberThreads": 1,
-                "queueCapacity": 30,
+                "queueCapacity": 80,
                 "timeSlice": 0.1
         },
         "distribution": {
@@ -16,8 +16,8 @@
                 },
                 "thinkTime": {
                         "type": "normal",
-                        "p1": 100,
-                        "p2": 10
+                        "p1": 240,
+                        "p2": 60
                 },
                 "timeOut": {
                         "type": "uniform",
@@ -28,6 +28,6 @@
         },
         "experiment": {
                 "runs": 10,
-                "requestPerRun":2000
+                "requestPerRun":200
         }
 }
