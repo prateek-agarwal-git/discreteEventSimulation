@@ -56,6 +56,7 @@ struct metrics
     void printMetrics();
     double areaNumInQueue;
     double areaServerStatus;
+    double testTime;
     int requestsHandled;
     std::set<int> timedOutRequests;
     std::set<int> successfulRequests;

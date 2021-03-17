@@ -3,10 +3,13 @@
 void state::updateStats()
 {
     double timeSinceLastEvent = currentSimulationTime - timeOfLastEvent;
+    M->testTime+=timeSinceLastEvent;
     int serverQueueLength = S->Q.size();
     int busyThreads = S->countBusyThreads();
-    M->areaNumInQueue = timeSinceLastEvent * serverQueueLength;
-    M->areaServerStatus = timeSinceLastEvent * ((busyThreads * 1.0) / S->numberThreads);
+    std::cout<<busyThreads<<std::endl;
+std::cout<<S->numberThreads<<std::endl;
+    M->areaNumInQueue += timeSinceLastEvent * serverQueueLength;
+    M->areaServerStatus += timeSinceLastEvent * ((busyThreads * 1.0) / S->numberThreads);
 }
 void state::updateTimeandNextEvent()
 {
@@ -62,7 +65,7 @@ void state::departure()
             M->successfulRequests.insert(requestId);
 
         double responseTime = currentSimulationTime - arrivalTimeStamp;
-        M->responseTimes[M->requestsHandled][M->currentRun] = responseTime;
+        M->responseTimes[requestId][M->currentRun] = responseTime;
 
         auto it2 = requestsAtServer.find(requestId);
         if (it2 != requestsAtServer.end())
@@ -81,7 +84,6 @@ void state::departure()
         queueObject currentRequest{requestId, arrivalTimeStamp, remainingTime};
         S->Q.push_back(currentRequest);
     }
-
     if (S->Q.empty() == false)
     {
         auto nextRequest = S->Q.front();
@@ -104,8 +106,9 @@ void state::requestTimeout()
     if ((its == M->successfulRequests.end()) && (itd == M->droppedRequests.end()))
     {
         M->timedOutRequests.insert(requestId);
-        if (requestsAtServer.find(requestId) != requestsAtServer.end())
-            requestsAtServer.erase(requestId);
+        auto it =requestsAtServer.find(requestId);
+        if (it != requestsAtServer.end())
+            requestsAtServer.erase(it);
         double newThinkTime = D.getThinkTime();
         double newArrivalTime = currentSimulationTime + newThinkTime;
         int requestId = M->requestsHandled;

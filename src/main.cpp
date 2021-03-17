@@ -22,18 +22,18 @@ int main()
             {
             case eventType::ARRIVAL:
                 S.arrival();
-                std::cout << "ARRIVAL " << std::endl;
-                sleep(3);
+                // std::cout << "ARRIVAL " << std::endl;
+                //sleep(3);
                 break;
             case eventType::DEPARTURE:
                 S.departure();
-                std::cout << "DEPARTURE " << std::endl;
-                sleep(3);
+                // std::cout << "DEPARTURE " << std::endl;
+                //sleep(3);
                 break;
             case eventType::TIMEOUT:
                 S.requestTimeout();
-                std::cout << "DEPARTURE " << std::endl;
-                sleep(3);
+                // std::cout << "TIMEOUT " << std::endl;
+            //    sleep(3);
                 break;
             }
             S.updateStats();

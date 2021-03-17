@@ -1,33 +1,33 @@
 {
         "clientStation": {
-                "numberOfUsers": 10
+                "numberOfUsers": 50
         },
         "serverStation": {
-                "contextSwitchOverhead": 0.001,
-                "numberThreads": 4,
-                "queueCapacity": 5,
+                "contextSwitchOverhead": 0.01,
+                "numberThreads": 1,
+                "queueCapacity": 50000,
                 "timeSlice": 1
         },
         "distribution": {
                 "serviceTime": {
                         "type": "exponential",
-                        "p1": 3,
+                        "p1": 2,
                         "p2": 4
                 },
                 "thinkTime": {
                         "type": "normal",
-                        "p1": 3,
+                        "p1": 10,
                         "p2": 4
                 },
                 "timeOut": {
                         "type": "uniform",
-                        "p1": 3,
-                        "p2": 4
+                        "p1": 60,
+                        "p2": 180
                 },
-                "seed": 102475
+                "seed": 102477
         },
         "experiment": {
                 "runs": 1,
-                "requestPerRun": 20
+                "requestPerRun":100
         }
 }

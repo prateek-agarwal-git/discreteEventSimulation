@@ -24,6 +24,7 @@ void metrics::initializeResponseTimes(int numRuns, int requestsPerRun)
 
 void state::initializeStats()
 {
+    M->testTime = 0.0;
     M->initializeResponseTimes(E->runs, E->requestsPerRun);
     M->accumulatedDroppedRequests = 0;
     M->accumulatedTimedOutRequests = 0;
@@ -34,6 +35,7 @@ void state::initializeStats()
 void state::initialize()
 {
     M->requestsHandled = 0;
+    
     currentSimulationTime = 0.0;
     timeOfLastEvent = 0.0;
     M->areaNumInQueue = 0.0;
@@ -49,7 +51,7 @@ void state::initialize()
         double thinkTime = D.getThinkTime();
         auto requestId = M->requestsHandled;
         M->requestsHandled += 1;
-        Event N{eventType::ARRIVAL, thinkTime, requestId, -1, 0.0, 0.0};
+        Event N{eventType::ARRIVAL, thinkTime, requestId, -1, 0.0, thinkTime};
         pq.push(N);
     }
     std::cout << "\nFinished Initialization\n"
@@ -128,9 +130,11 @@ void state::writeStats()
 
     // writing response Times
     std::ofstream fileDelay("delayFile", std::ios::out | std::ios::app);
-    for (auto i = 0 ; i < E ->requestsPerRun; i+=1){
-        for (auto j = 0; j < E->runs; j+=1){
-            fileDelay << M->responseTimes[i][j]<< ",";
+    for (auto i = 0; i < E->requestsPerRun; i += 1)
+    {
+        for (auto j = 0; j < E->runs; j += 1)
+        {
+            fileDelay << M->responseTimes[i][j] << ",";
         }
         fileDelay << "\n";
     }
@@ -143,4 +147,7 @@ void state::updateAccumulators()
     M->accumulatedSuccesfulRequests += M->successfulRequests.size();
     M->accumulatedAverageNumberinQueue += ((1.0 * M->areaNumInQueue) / currentSimulationTime);
     M->accumulatedUtilization += (1.0 * M->areaServerStatus) / currentSimulationTime;
+    std::cout << currentSimulationTime << std::endl;
+    std::cout << M->areaServerStatus << std::endl;
+    std::cout << M->testTime << std::endl;
 }
