@@ -64,8 +64,9 @@ void state::departure()
             M->successfulRequests.insert(requestId);
 
         double responseTime = currentSimulationTime - arrivalTimeStamp;
-        M->responseTimes[requestId][M->currentRun] = responseTime;
-        M->requestsDepartedorDropped += 1;
+        M->currentResponseVector.push_back(responseTime);
+        // M->responseTimes[requestId][M->currentRun] = responseTime;
+        // M->requestsDepartedorDropped += 1;
         auto it2 = requestsAtServer.find(requestId);
         if (it2 != requestsAtServer.end())
             requestsAtServer.erase(it2);
@@ -93,6 +94,11 @@ void state::departure()
         auto currentServiceQuantum = std::min(nextRequest.remainingTime, S->timeSlice);
         auto remainingServiceTime = std::max(0.0, nextRequest.remainingTime - S->timeSlice);
         auto nextTimeStamp = currentSimulationTime + currentServiceQuantum + S->contextSwitchOverhead;
+        if (S->Q.size() == 0)
+        {
+            nextTimeStamp -= S->contextSwitchOverhead;
+            // S->threads[threadId] = Status::IDLE;
+        }
         Event N{eventType::DEPARTURE, nextTimeStamp,
                 requestId, threadId, remainingServiceTime, nextRequest.arrivalTimeStamp};
         pq.push(N);

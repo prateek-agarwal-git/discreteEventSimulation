@@ -52,7 +52,7 @@ struct metrics
     metrics()
     {
     }
-    void initializeResponseTimes(int numRuns, int requestsPerRun);
+    void initializeResponseTimes();
     void printMetrics();
     double areaNumInQueue;
     double areaServerStatus;
@@ -67,9 +67,14 @@ struct metrics
     int accumulatedTimedOutRequests;
     int accumulatedSuccesfulRequests;
     int accumulatedDroppedRequests;
+    double throughPut;
+    double goodPut;
+    double badPut;
+    double dropRate;
     int currentRun;
     double coreUtilization;
     std::vector<std::vector<double>> responseTimes;
+    std::vector<double> currentResponseVector;
 };
 struct client
 {

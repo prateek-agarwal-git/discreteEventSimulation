@@ -8,29 +8,34 @@ void distributions::initialize()
     mt_engine.seed(seed);
 }
 
-void metrics::initializeResponseTimes(int numRuns, int requestsPerRun)
+void metrics::initializeResponseTimes()
 {
-    for (int i = 0; i < (requestsPerRun + 10); i += 1)
-    {
-        //10 is just a buffer to avoid index out of bounds
-        std::vector<double> temp{};
-        for (int j = 0; j < numRuns; j += 1)
-        {
-            temp.push_back(-1.0);
-        }
-        responseTimes.push_back(temp);
-    }
+    responseTimes.clear();
+    //   for (int i = 0; i < (requestsPerRun + 10); i += 1)
+    //   {
+    //       //10 is just a buffer to avoid index out of bounds
+    //       std::vector<double> temp{};
+    //       for (int j = 0; j < numRuns; j += 1)
+    //       {
+    //           temp.push_back(-1.0);
+    //       }
+    //       responseTimes.push_back(temp);
+    //   }
 }
 
 void state::initializeStats()
 {
     M->testTime = 0.0;
-    M->initializeResponseTimes(E->runs, E->requestsPerRun);
+    M->initializeResponseTimes();
     M->accumulatedDroppedRequests = 0;
     M->accumulatedTimedOutRequests = 0;
     M->accumulatedDroppedRequests = 0;
     M->accumulatedUtilization = 0.0;
     M->accumulatedAverageNumberinQueue = 0.0;
+    M->dropRate = 0.0;
+    M->badPut = 0.0;
+    M->goodPut = 0.0;
+    M->throughPut = 0.0;
 }
 void state::initialize()
 {
@@ -39,21 +44,22 @@ void state::initialize()
     currentSimulationTime = 0.0;
     timeOfLastEvent = 0.0;
     M->areaNumInQueue = 0.0;
-    M->areaServerStatus = 0.;
+    M->areaServerStatus = 0.0;
     M->timedOutRequests.clear();
     M->droppedRequests.clear();
     M->successfulRequests.clear();
+    M->currentResponseVector.clear();
     S->initializeServer();
     D.initialize();
     generateTimes();
-    while (pq.empty() == false){
+    while (pq.empty() == false)
+    {
         pq.pop();
     }
-    // std::cout << pq.size()<<std::endl;
-    
+
     for (auto i = 0; i < C->numberOfUsers; i += 1)
     {
-        double thinkTime = D.getThinkTime();
+        double thinkTime = D.getThinkTime() + 2 * i;
         auto requestId = M->requestsHandled;
         M->requestsHandled += 1;
         Event N{eventType::ARRIVAL, thinkTime, requestId, -1, 0.0, thinkTime};
@@ -119,28 +125,59 @@ void state::writeStats()
     //writing point estimates
     std::ofstream filePointStats("means.data", std::ios::out | std::ios::app);
 
-    auto goodPut = (M->accumulatedSuccesfulRequests * 1.0) / E->runs;
-    auto badPut = (M->accumulatedTimedOutRequests * 1.0) / E->runs;
+    auto averageSuccessfulRequests = (M->accumulatedSuccesfulRequests * 1.0) / E->runs;
+    auto averageTimeoutRequests = (M->accumulatedTimedOutRequests * 1.0) / E->runs;
     auto droppedRequests = (M->accumulatedDroppedRequests * 1.0) / E->runs;
-    auto averageUtilization = M->accumulatedUtilization / E->runs;
+    auto averageUtilization = (1.0 * M->accumulatedUtilization) / E->runs;
     auto averageQueueLength = M->accumulatedAverageNumberinQueue / E->runs;
+    auto dropRate = M->dropRate / E->runs;
+    auto goodPut = M->goodPut / E->runs;
+    auto badPut = M->badPut / E->runs;
+    auto throughPut = M->throughPut / E->runs;
 
-    filePointStats << "Goodput = " << std::setw(3) << goodPut << std::endl;
-    filePointStats << "Badput = " << std::setw(3) << badPut << std::endl;
+    filePointStats << "NumberOfUsers = " << C->numberOfUsers << std::endl;
+    filePointStats << "Average Successful Requests = " << std::setw(3) << averageSuccessfulRequests << std::endl;
+    filePointStats << "Average TimeOutRequests = " << std::setw(3) << averageTimeoutRequests << std::endl;
     filePointStats << "Dropped Requests = " << std::setw(3) << droppedRequests << std::endl;
     filePointStats << "Average Utilization = " << std::setw(3) << averageUtilization << std::endl;
     filePointStats << "Average Queue Length = " << std::setw(3) << averageQueueLength << std::endl;
-
+    filePointStats <<"GoodPut = "<< goodPut << std::endl;
+    filePointStats <<"badPut = "<< badPut << std::endl;
+    filePointStats <<"throughPut = "<<throughPut << std::endl;
+    filePointStats <<"dropRate = "<< dropRate << std::endl;
+    double s = 0.0;
+    int n = 0;
     // writing response Times
-    std::ofstream fileDelay("delayFile", std::ios::out | std::ios::app);
-    for (auto i = 0; i < E->requestsPerRun; i += 1)
+    std::string delayFile = "delayFile";
+    delayFile += std::to_string(C->numberOfUsers);
+    std::ofstream fileDelay(delayFile, std::ios::out | std::ios::app);
+    for (auto i = 0; i < M->responseTimes.size(); i += 1)
     {
-        for (auto j = 0; j < E->runs; j += 1)
+        for (auto j = 0; j < M->responseTimes[i].size(); j += 1)
         {
             fileDelay << M->responseTimes[i][j] << ",";
+            s += M->responseTimes[i][j];
+            n += 1;
         }
         fileDelay << "\n";
     }
+    fileDelay << "=============================="
+              << "\n";
+    fileDelay << "=============================="
+              << "\n";
+    fileDelay << "=============================="
+              << "\n";
+    fileDelay << "=============================="
+              << "\n";
+    fileDelay << "=============================="
+              << "\n";
+    fileDelay << "=============================="
+              << "\n";
+    auto avgResponseTime = s / n;
+    filePointStats << "Average Response time= " << std::setw(3) << avgResponseTime << std::endl;
+
+    filePointStats << "=============================="
+                   << "\n";
 }
 
 void state::updateAccumulators()
@@ -149,11 +186,15 @@ void state::updateAccumulators()
     M->accumulatedTimedOutRequests += M->timedOutRequests.size();
     M->accumulatedSuccesfulRequests += M->successfulRequests.size();
     M->accumulatedAverageNumberinQueue += ((1.0 * M->areaNumInQueue) / currentSimulationTime);
-    M->accumulatedUtilization += (1.0 * M->areaServerStatus) / currentSimulationTime;
-
+    M->accumulatedUtilization += ((1.0 * M->areaServerStatus) / currentSimulationTime);
+    M->responseTimes.push_back(M->currentResponseVector);
+    M->dropRate += M->accumulatedDroppedRequests / currentSimulationTime;
+    M->badPut += M->accumulatedTimedOutRequests / currentSimulationTime;
+    M->goodPut += M->accumulatedSuccesfulRequests / currentSimulationTime;
+    M->throughPut += M->goodPut + M->badPut;
 }
 
-    // std::cout << M->droppedRequests.size()<< std::endl;
- //   std::cout << currentSimulationTime << std::endl;
- //   std::cout << M->areaServerStatus << std::endl;
- //   std::cout << M->testTime << std::endl;
+// std::cout << M->droppedRequests.size()<< std::endl;
+//   std::cout << currentSimulationTime << std::endl;
+//   std::cout << M->areaServerStatus << std::endl;
+//   std::cout << M->testTime << std::endl;

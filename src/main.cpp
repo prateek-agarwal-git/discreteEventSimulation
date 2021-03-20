@@ -6,17 +6,16 @@ int main()
     S.readConfig();
     S.initializeStats();
     S.printConfig();
-    S.generateTimes();
 
     for (auto i = 0; i < S.E->runs; i += 1)
     {
         S.M->currentRun = i;
         S.initialize();
+        S.generateTimes();
         while (S.M->requestsHandled < S.E->requestsPerRun)
         {
             S.updateTimeandNextEvent();
-            // S.printState();
-
+            S.updateStats();
             switch (S.nextEventType)
             {
             case eventType::ARRIVAL:
@@ -29,8 +28,8 @@ int main()
                 S.requestTimeout();
                 break;
             }
-            S.updateStats();
         }
+
         S.updateAccumulators();
     }
     S.writeStats();
