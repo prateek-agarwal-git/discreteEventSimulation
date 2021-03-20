@@ -123,7 +123,7 @@ void state::generateTimes()
 void state::writeStats()
 {
     //writing point estimates
-    std::ofstream filePointStats("means.data", std::ios::out | std::ios::app);
+    std::ofstream filePointStats("output/means.data", std::ios::out | std::ios::app);
 
     auto averageSuccessfulRequests = (M->accumulatedSuccesfulRequests * 1.0) / E->runs;
     auto averageTimeoutRequests = (M->accumulatedTimedOutRequests * 1.0) / E->runs;
@@ -141,43 +141,30 @@ void state::writeStats()
     filePointStats << "Dropped Requests = " << std::setw(3) << droppedRequests << std::endl;
     filePointStats << "Average Utilization = " << std::setw(3) << averageUtilization << std::endl;
     filePointStats << "Average Queue Length = " << std::setw(3) << averageQueueLength << std::endl;
-    filePointStats <<"GoodPut = "<< goodPut << std::endl;
-    filePointStats <<"badPut = "<< badPut << std::endl;
-    filePointStats <<"throughPut = "<<throughPut << std::endl;
-    filePointStats <<"dropRate = "<< dropRate << std::endl;
+    filePointStats << "GoodPut = " << goodPut << std::endl;
+    filePointStats << "badPut = " << badPut << std::endl;
+    filePointStats << "throughPut = " << throughPut << std::endl;
+    filePointStats << "dropRate = " << dropRate << std::endl;
     double s = 0.0;
     int n = 0;
     // writing response Times
-    std::string delayFile = "delayFile";
-    delayFile += std::to_string(C->numberOfUsers);
-    std::ofstream fileDelay(delayFile, std::ios::out | std::ios::app);
-    for (auto i = 0; i < M->responseTimes.size(); i += 1)
+//    std::string delayFile = "output/delayFile";
+//    delayFile += std::to_string(C->numberOfUsers);
+//    delayFile += ".csv";
+//    std::ofstream fileDelay(delayFile, std::ios::out);
+    for (auto i = 0UL; i < M->responseTimes.size(); i += 1)
     {
-        for (auto j = 0; j < M->responseTimes[i].size(); j += 1)
+        for (auto j = 0UL; j < M->responseTimes[i].size(); j += 1)
         {
-            fileDelay << M->responseTimes[i][j] << ",";
+//            fileDelay << M->responseTimes[i][j] << " ";
             s += M->responseTimes[i][j];
             n += 1;
         }
-        fileDelay << "\n";
+//        fileDelay << "\n";
     }
-    fileDelay << "=============================="
-              << "\n";
-    fileDelay << "=============================="
-              << "\n";
-    fileDelay << "=============================="
-              << "\n";
-    fileDelay << "=============================="
-              << "\n";
-    fileDelay << "=============================="
-              << "\n";
-    fileDelay << "=============================="
-              << "\n";
+
     auto avgResponseTime = s / n;
     filePointStats << "Average Response time= " << std::setw(3) << avgResponseTime << std::endl;
-
-    filePointStats << "=============================="
-                   << "\n";
 }
 
 void state::updateAccumulators()
@@ -188,10 +175,10 @@ void state::updateAccumulators()
     M->accumulatedAverageNumberinQueue += ((1.0 * M->areaNumInQueue) / currentSimulationTime);
     M->accumulatedUtilization += ((1.0 * M->areaServerStatus) / currentSimulationTime);
     M->responseTimes.push_back(M->currentResponseVector);
-    M->dropRate += M->accumulatedDroppedRequests / currentSimulationTime;
-    M->badPut += M->accumulatedTimedOutRequests / currentSimulationTime;
-    M->goodPut += M->accumulatedSuccesfulRequests / currentSimulationTime;
-    M->throughPut += M->goodPut + M->badPut;
+    M->dropRate += M->droppedRequests.size() / currentSimulationTime;
+    M->badPut += M->timedOutRequests.size() / currentSimulationTime;
+    M->goodPut += M->successfulRequests.size() / currentSimulationTime;
+    M->throughPut += (M->timedOutRequests.size() + M->successfulRequests.size()) / currentSimulationTime;
 }
 
 // std::cout << M->droppedRequests.size()<< std::endl;
