@@ -72,18 +72,18 @@ void distributions::printDistributionConfig()
 
     std::cout << "ThinkTime:" << std::endl;
     std::cout << "Type:" << thinkTime.type << std::endl;
-    std::cout << "P1(mean):" << thinkTime.p1 << std::endl;
-    std::cout << "P2" << thinkTime.p2 << std::endl;
+    std::cout << "P1: " << thinkTime.p1 << std::endl;
+    std::cout << "P2: " << thinkTime.p2 << std::endl;
 
     std::cout << "serviceTime:" << std::endl;
     std::cout << "Type:" << serviceTime.type << std::endl;
-    std::cout << "P1(mean):" << serviceTime.p1 << std::endl;
-    std::cout << "P2" << serviceTime.p2 << std::endl;
+    std::cout << "P1: " << serviceTime.p1 << std::endl;
+    std::cout << "P2: " << serviceTime.p2 << std::endl;
 
     std::cout << "timeOut:" << std::endl;
     std::cout << "Type:" << timeOut.type << std::endl;
-    std::cout << "P1(mean):" << timeOut.p1 << std::endl;
-    std::cout << "P2" << timeOut.p2 << std::endl;
+    std::cout << "P1: " << timeOut.p1 << std::endl;
+    std::cout << "P2: " << timeOut.p2 << std::endl;
 
     std::cout << std::endl;
 }

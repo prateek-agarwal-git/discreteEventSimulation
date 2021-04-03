@@ -65,16 +65,15 @@ void state::departure()
 
         double responseTime = currentSimulationTime - arrivalTimeStamp;
         M->currentResponseVector.push_back(responseTime);
-        // M->responseTimes[requestId][M->currentRun] = responseTime;
-        // M->requestsDepartedorDropped += 1;
+
         auto it2 = requestsAtServer.find(requestId);
         if (it2 != requestsAtServer.end())
             requestsAtServer.erase(it2);
 
         S->threads[threadId] = Status::IDLE;
+
         auto newThinkTime = D.getThinkTime();
         auto newArrivalTime = currentSimulationTime + newThinkTime;
-        // std::cout << "The ne"
         int requestId = M->requestsHandled;
         M->requestsHandled += 1;
         Event N{eventType::ARRIVAL, newArrivalTime, requestId, -1, 0.0, newArrivalTime};
@@ -205,19 +204,3 @@ bool server::allocateThread(int &threadId)
     threadId = -1;
     return false;
 }
-// if ((requestId == 17) && (M->currentRun == 4))
-// {
-//     std::cout<< "hi The priority queue size is"<<std::endl;
-//     std::cout << pq.size() << std::endl;
-//     exit(0);
-// }
-// if ((M->currentRun == 4) && (requestId == 17))
-// {
-//     std::cout << "The timeout is " << timeOut << std::endl;
-//     //    // exit(0);
-//     std::cout << pq.size() << std::endl;
-//     //    exit(0);
-// }
-//    std::cout << nextEventObject.requestId << std::endl;
-//    std::cout << nextEventObject.timeStamp << std::endl;
-// std::cout<< "the size of priority queue is " <<pq.size()<<std::endl;

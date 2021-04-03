@@ -8,25 +8,10 @@ void distributions::initialize()
     mt_engine.seed(seed);
 }
 
-void metrics::initializeResponseTimes()
-{
-    responseTimes.clear();
-    //   for (int i = 0; i < (requestsPerRun + 10); i += 1)
-    //   {
-    //       //10 is just a buffer to avoid index out of bounds
-    //       std::vector<double> temp{};
-    //       for (int j = 0; j < numRuns; j += 1)
-    //       {
-    //           temp.push_back(-1.0);
-    //       }
-    //       responseTimes.push_back(temp);
-    //   }
-}
-
 void state::initializeStats()
 {
     M->testTime = 0.0;
-    M->initializeResponseTimes();
+    M->responseTimes.clear();
     M->accumulatedDroppedRequests = 0;
     M->accumulatedTimedOutRequests = 0;
     M->accumulatedDroppedRequests = 0;
@@ -37,6 +22,7 @@ void state::initializeStats()
     M->goodPut = 0.0;
     M->throughPut = 0.0;
 }
+
 void state::initialize()
 {
     M->requestsHandled = 0;
@@ -148,19 +134,19 @@ void state::writeStats()
     double s = 0.0;
     int n = 0;
     // writing response Times
-//    std::string delayFile = "output/delayFile";
-//    delayFile += std::to_string(C->numberOfUsers);
-//    delayFile += ".csv";
-//    std::ofstream fileDelay(delayFile, std::ios::out);
+    std::string delayFile = "output/delayFile";
+    delayFile += std::to_string(C->numberOfUsers);
+    delayFile += ".csv";
+    std::ofstream fileDelay(delayFile, std::ios::out);
     for (auto i = 0UL; i < M->responseTimes.size(); i += 1)
     {
         for (auto j = 0UL; j < M->responseTimes[i].size(); j += 1)
         {
-//            fileDelay << M->responseTimes[i][j] << " ";
+            fileDelay << M->responseTimes[i][j] << " ";
             s += M->responseTimes[i][j];
             n += 1;
         }
-//        fileDelay << "\n";
+        fileDelay << "\n";
     }
 
     auto avgResponseTime = s / n;
@@ -169,19 +155,17 @@ void state::writeStats()
 
 void state::updateAccumulators()
 {
-    M->accumulatedDroppedRequests += M->droppedRequests.size();
-    M->accumulatedTimedOutRequests += M->timedOutRequests.size();
-    M->accumulatedSuccesfulRequests += M->successfulRequests.size();
+    int  numDroppedRequests = M->droppedRequests.size();
+    int numTimedOutRequests = M->timedOutRequests.size();
+    int numSuccessfulRequests = M->successfulRequests.size();
+    M->accumulatedDroppedRequests += numDroppedRequests;
+    M->accumulatedTimedOutRequests += numTimedOutRequests;
+    M->accumulatedSuccesfulRequests += numSuccessfulRequests;
     M->accumulatedAverageNumberinQueue += ((1.0 * M->areaNumInQueue) / currentSimulationTime);
     M->accumulatedUtilization += ((1.0 * M->areaServerStatus) / currentSimulationTime);
     M->responseTimes.push_back(M->currentResponseVector);
-    M->dropRate += M->droppedRequests.size() / currentSimulationTime;
-    M->badPut += M->timedOutRequests.size() / currentSimulationTime;
-    M->goodPut += M->successfulRequests.size() / currentSimulationTime;
-    M->throughPut += (M->timedOutRequests.size() + M->successfulRequests.size()) / currentSimulationTime;
+    M->dropRate += numDroppedRequests / currentSimulationTime;
+    M->badPut += numTimedOutRequests / currentSimulationTime;
+    M->goodPut += numSuccessfulRequests / currentSimulationTime;
+    M->throughPut += (numTimedOutRequests+numSuccessfulRequests) / currentSimulationTime;
 }
-
-// std::cout << M->droppedRequests.size()<< std::endl;
-//   std::cout << currentSimulationTime << std::endl;
-//   std::cout << M->areaServerStatus << std::endl;
-//   std::cout << M->testTime << std::endl;

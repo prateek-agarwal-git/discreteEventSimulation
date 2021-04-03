@@ -52,7 +52,6 @@ struct metrics
     metrics()
     {
     }
-    void initializeResponseTimes();
     void printMetrics();
     double areaNumInQueue;
     double areaServerStatus;
