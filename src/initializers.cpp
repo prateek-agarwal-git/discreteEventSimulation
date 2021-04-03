@@ -165,6 +165,7 @@ void state::writeStats()
 
     auto avgResponseTime = s / n;
     filePointStats << "Average Response time= " << std::setw(3) << avgResponseTime << std::endl;
+    filePointStats << "=========================================== "<< std::endl;
 }
 
 void state::updateAccumulators()

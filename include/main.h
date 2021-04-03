@@ -99,7 +99,7 @@ struct compareTimestamps
         return e1.timeStamp > e2.timeStamp;
     }
 };
-struct queueObject
+struct threadObject
 {
     int requestId;
     double arrivalTimeStamp;
@@ -112,15 +112,15 @@ struct server
     void initializeServer();
     void printServerState();
     void readServerConfig(const pt::ptree &configTree);
-    bool allocateThread(int &threadId);
+    bool allocateCore(int &threadId);
     void printServerConfig();
-    int countBusyThreads();
-    std::deque<queueObject> Q;
-    int numberThreads;
-    int nextThread;
-    std::vector<Status> threads;
+    int countBusyCores();
+    std::deque<threadObject> Q;
+    int numberCores;
+    int nextCore;
+    std::vector<Status> cores;
     double contextSwitchOverhead;
-    uint64_t queueCapacity;
+    uint64_t numberThreads;
     double timeSlice;
 };
 struct preComputedTimes
