@@ -19,18 +19,18 @@ void client::readClientConfig(const pt::ptree &configTree)
 }
 void server::initializeServer()
 {
-    threads.clear();
+    cores.clear();
     Q.clear();
-    for (auto i = 0; i < numberThreads; i += 1)
-        threads.push_back(Status::IDLE);
-    nextThread = 0;
+    for (auto i = 0; i < numberCores; i += 1)
+        cores.push_back(Status::IDLE);
+    nextCore = 0;
 }
 void server::readServerConfig(const pt::ptree &configTree)
 {
     const pt::ptree &serverTree = configTree.get_child("serverStation");
     contextSwitchOverhead = serverTree.get<double>("contextSwitchOverhead");
+    numberCores = serverTree.get<int>("numberCores");
     numberThreads = serverTree.get<int>("numberThreads");
-    queueCapacity = serverTree.get<int>("queueCapacity");
     timeSlice = serverTree.get<double>("timeSlice");
 }
 void Experiment::printExperimentConfig()
@@ -49,15 +49,15 @@ void client::printClientConfig()
 void server::printServerConfig()
 {
     std::cout << "Server Config:" << std::endl;
+    std::cout << "numberCores = " << numberCores << std::endl;
+    std::cout << "nextCore = " << nextCore << std::endl;
     std::cout << "numberThreads = " << numberThreads << std::endl;
-    std::cout << "nextThread = " << nextThread << std::endl;
-    std::cout << "queueCapacity = " << queueCapacity << std::endl;
     std::cout << "contextSwitchOverhead = " << contextSwitchOverhead << std::endl;
     std::cout << "Q.size() =  " << Q.size() << std::endl;
-    std::cout << "threads.size() =  " << threads.size() << std::endl;
-    for (auto i = 0UL; i < threads.size(); i += 1)
+    std::cout << "cores.size() =  " << cores.size() << std::endl;
+    for (auto i = 0UL; i < cores.size(); i += 1)
     {
-        if (threads[i] == Status::IDLE)
+        if (cores[i] == Status::IDLE)
         {
             std::cout << i << "th thread is IDLE " << std::endl;
         }
