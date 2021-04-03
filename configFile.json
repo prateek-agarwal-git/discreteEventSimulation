@@ -6,7 +6,8 @@
                 "contextSwitchOverhead": 0.002,
                 "numberCores": 1,
                 "numberThreads": 500,
-                "timeSlice": 0.02
+                "timeSlice": 0.02,
+                "requestQueueCapacity": 20 
         },
         "distribution": {
                 "serviceTime": {

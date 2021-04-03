@@ -43,6 +43,7 @@ struct Event
     eventType event;
     double timeStamp;
     int requestId;
+    int coreId;
     int threadId;
     double remainingTime;
     double arrivalTimeStamp; // this server should be made idle once the request departs. Departure
@@ -101,6 +102,7 @@ struct compareTimestamps
 struct threadObject
 {
     int requestId;
+    int threadId;
     double arrivalTimeStamp;
     double remainingTime;
 };
@@ -111,13 +113,16 @@ struct server
     void initializeServer();
     void printServerState();
     void readServerConfig(const pt::ptree &configTree);
-    bool allocateCore(int &threadId);
+    bool allocateCore(int &coreId);
     void printServerConfig();
     int countBusyCores();
-    std::deque<threadObject> Q;
+   std::vector< std::deque<threadObject> > Q;
+    std::deque<int> availableThreads;
+    std::deque<int> requestQueue;
+    int requestQueueCapacity;
     int numberCores;
     int nextCore;
-    std::vector<Status> cores;
+    std::vector<Status> coreStatus;
     double contextSwitchOverhead;
     uint64_t numberThreads;
     double timeSlice;

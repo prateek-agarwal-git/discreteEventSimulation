@@ -10,6 +10,10 @@ void distributions::initialize()
 
 void state::initializeStats()
 {
+    for (auto i = 0; i < S->numberCores; i += 1)
+    {
+        S->Q.push_back(std::deque<threadObject>());
+    }
     M->testTime = 0.0;
     M->responseTimes.clear();
     M->accumulatedDroppedRequests = 0;
@@ -48,7 +52,7 @@ void state::initialize()
         double thinkTime = D.getThinkTime() + 2 * i;
         auto requestId = M->requestsHandled;
         M->requestsHandled += 1;
-        Event N{eventType::ARRIVAL, thinkTime, requestId, -1, 0.0, thinkTime};
+        Event N{eventType::ARRIVAL, thinkTime, requestId, -1,-1, 0.0, thinkTime};
         pq.push(N);
     }
 }
@@ -151,12 +155,12 @@ void state::writeStats()
 
     auto avgResponseTime = s / n;
     filePointStats << "Average Response time= " << std::setw(3) << avgResponseTime << std::endl;
-    filePointStats << "=========================================== "<< std::endl;
+    filePointStats << "=========================================== " << std::endl;
 }
 
 void state::updateAccumulators()
 {
-    int  numDroppedRequests = M->droppedRequests.size();
+    int numDroppedRequests = M->droppedRequests.size();
     int numTimedOutRequests = M->timedOutRequests.size();
     int numSuccessfulRequests = M->successfulRequests.size();
     M->accumulatedDroppedRequests += numDroppedRequests;
@@ -168,5 +172,5 @@ void state::updateAccumulators()
     M->dropRate += numDroppedRequests / currentSimulationTime;
     M->badPut += numTimedOutRequests / currentSimulationTime;
     M->goodPut += numSuccessfulRequests / currentSimulationTime;
-    M->throughPut += (numTimedOutRequests+numSuccessfulRequests) / currentSimulationTime;
+    M->throughPut += (numTimedOutRequests + numSuccessfulRequests) / currentSimulationTime;
 }
