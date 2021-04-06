@@ -121,9 +121,9 @@ void state::departure()
         auto timeStamp = currentSimulationTime + currentServiceQuantum  + S->contextSwitchOverhead;
 
         if(S->readyQ[coreId].size() == 0 && requestId == newRequestId)
-            remainingTime -= S->contextSwitchOverhead;
+            timeStamp -= S->contextSwitchOverhead;
 
-        Event N{eventType::DEPARTURE, timeStamp, newRequestId, coreId, threadId, arrivalTimeStamp };
+        Event N{eventType::DEPARTURE, timeStamp, newRequestId, coreId, threadId, remainingTime, arrivalTimeStamp };
         pq.push(N);
     }
 }

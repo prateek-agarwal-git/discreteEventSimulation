@@ -24,7 +24,7 @@ enum class eventType
 {
     ARRIVAL,
     DEPARTURE,
-    TIMEOUT,
+    TIMEOUT
 
 };
 
