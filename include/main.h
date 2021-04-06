@@ -56,9 +56,7 @@ struct metrics
     void printMetrics();
     double areaNumInQueue;
     double areaServerStatus;
-    double testTime;
     int requestsHandled;
-    int requestsDepartedorDropped;
     std::set<int> timedOutRequests;
     std::set<int> successfulRequests;
     std::set<int> droppedRequests;
@@ -71,8 +69,8 @@ struct metrics
     double goodPut;
     double badPut;
     double dropRate;
-    int currentRun;
-    double coreUtilization;
+    // int currentRun;
+    // double coreUtilization;
     std::vector<std::vector<double>> responseTimes;
     std::vector<double> currentResponseVector;
 };
@@ -106,6 +104,11 @@ struct threadObject
     double arrivalTimeStamp;
     double remainingTime;
 };
+struct requestQueueObject
+{
+    int requestId;
+    double arrivalTimeStamp;
+};
 struct server
 {
     server() {}
@@ -113,15 +116,13 @@ struct server
     void initializeServer();
     void printServerState();
     void readServerConfig(const pt::ptree &configTree);
-    bool allocateCore(int &coreId);
     void printServerConfig();
     int countBusyCores();
-   std::vector< std::deque<threadObject> > Q;
-    std::deque<int> availableThreads;
-    std::deque<int> requestQueue;
+    std::vector<std::deque<threadObject>> readyQ;
+    std::deque<int> threadPool;
+    std::deque<requestQueueObject> requestQueue;
     int requestQueueCapacity;
     int numberCores;
-    int nextCore;
     std::vector<Status> coreStatus;
     double contextSwitchOverhead;
     uint64_t numberThreads;
@@ -171,7 +172,6 @@ struct state
         E = std::move(tempE);
     }
     std::priority_queue<Event, std::vector<Event>, compareTimestamps> pq;
-    std::set<int> requestsAtServer;
     double currentSimulationTime;
     double timeOfLastEvent;
 

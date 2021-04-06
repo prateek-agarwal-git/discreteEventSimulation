@@ -9,7 +9,7 @@ int main()
 
     for (auto i = 0; i < S.E->runs; i += 1)
     {
-        S.M->currentRun = i;
+        // S.M->currentRun = i;
         S.initialize();
         S.generateTimes();
         while (S.M->requestsHandled < S.E->requestsPerRun)

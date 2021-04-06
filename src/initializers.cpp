@@ -10,11 +10,10 @@ void distributions::initialize()
 
 void state::initializeStats()
 {
-    for (auto i = 0; i < S->numberCores; i += 1)
-    {
-        S->Q.push_back(std::deque<threadObject>());
-    }
-    M->testTime = 0.0;
+    //for (auto i = 0; i < S->numberCores; i += 1)
+    //{
+    //    S->readyQ.push_back(std::deque<threadObject>());
+    //}
     M->responseTimes.clear();
     M->accumulatedDroppedRequests = 0;
     M->accumulatedTimedOutRequests = 0;
@@ -30,7 +29,6 @@ void state::initializeStats()
 void state::initialize()
 {
     M->requestsHandled = 0;
-    M->requestsDepartedorDropped = 0;
     currentSimulationTime = 0.0;
     timeOfLastEvent = 0.0;
     M->areaNumInQueue = 0.0;

@@ -20,20 +20,14 @@ void client::readClientConfig(const pt::ptree &configTree)
 void server::initializeServer()
 {
     coreStatus.clear();
-    availableThreads.clear();
+    threadPool.clear();
     requestQueue.clear();
     for (auto i = 0; i < numberThreads; i += 1)
-    {
-        availableThreads.push_back(i);
-    }
-    for (auto i = 0; i < numberCores; i += 1){
-        coreStatus.push_back(Status::IDLE);
-    }
+        threadPool.push_back(i);
     for (auto i = 0; i < numberCores; i += 1)
-    {
-        Q[i].clear();
-    }
-    nextCore = 0;
+        coreStatus.push_back(Status::IDLE);
+    for (auto i = 0; i < numberCores; i += 1)
+        readyQ[i].clear();
 }
 void server::readServerConfig(const pt::ptree &configTree)
 {
@@ -62,10 +56,9 @@ void server::printServerConfig()
 {
     std::cout << "Server Config:" << std::endl;
     std::cout << "numberCores = " << numberCores << std::endl;
-    std::cout << "nextCore = " << nextCore << std::endl;
     std::cout << "numberThreads = " << numberThreads << std::endl;
     std::cout << "contextSwitchOverhead = " << contextSwitchOverhead << std::endl;
-    std::cout << "Q.size() =  " << Q.size() << std::endl;
+    std::cout << "readyQ.size() =  " << readyQ.size() << std::endl;
     std::cout << "coreStatus.size() =  " << coreStatus.size() << std::endl;
 std::cout << "requestQueueCapacity = "<< requestQueueCapacity<<std::endl;
     for (auto i = 0UL; i < coreStatus.size(); i += 1)

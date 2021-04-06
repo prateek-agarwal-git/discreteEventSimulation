@@ -3,12 +3,9 @@
 void state::updateStats()
 {
     double timeSinceLastEvent = currentSimulationTime - timeOfLastEvent;
-    M->testTime += timeSinceLastEvent;
-    int serverQueueLength = 0;
+    auto serverQueueLength = 0;
     for (auto i = 0; i < S->numberCores; i += 1)
-    {
-        serverQueueLength += S->Q[i].size();
-    }
+        serverQueueLength += S->readyQ[i].size();
     int busyThreads = S->countBusyCores();
     M->areaNumInQueue += timeSinceLastEvent * serverQueueLength;
     M->areaServerStatus += timeSinceLastEvent * ((busyThreads * 1.0) / S->numberCores);
@@ -23,49 +20,48 @@ void state::updateTimeandNextEvent()
 }
 void state::arrival()
 {
-    int coreId;
     auto requestId = nextEventObject.requestId;
     auto arrivalTimeStamp = nextEventObject.arrivalTimeStamp;
     auto timeOut = D.getTimeOut();
 
     auto newTimeStamp = currentSimulationTime + timeOut;
     Event T{eventType::TIMEOUT, newTimeStamp, requestId,
-            -1,-1, 0.0, arrivalTimeStamp};
+            -1, -1, 0.0, arrivalTimeStamp};
     pq.push(T);
-    if (S->availableThreads.size() > 0)
+    if (S->threadPool.size() > 0)
     {
-        auto threadId = S->availableThreads.front();
-        coreId = threadId % S->numberCores;
+        auto threadId = S->threadPool.front();
+        S->threadPool.pop_front();
+        auto coreId = threadId % S->numberCores;
+        auto serviceTime = D.getServiceTime();
         if (S->coreStatus[coreId] == Status::IDLE)
         {
-            S->coreStatus[coreId] == Status::BUSY;
-            auto serviceTime = D.getServiceTime();
-            S->availableThreads.pop_front();
+            S->coreStatus[coreId] = Status::BUSY;
             auto remainingTime = std::max((serviceTime - S->timeSlice), 0.0);
             double nextTimeStamp = currentSimulationTime + std::min(serviceTime, S->timeSlice) + S->contextSwitchOverhead;
             Event N{eventType::DEPARTURE, nextTimeStamp, requestId, coreId,
                     threadId, remainingTime, arrivalTimeStamp};
-            requestsAtServer.insert(nextEventObject.requestId);
             pq.push(N);
         }
         else
         {
-            auto serviceTime = D.getServiceTime();
             threadObject tempObject{requestId, threadId, arrivalTimeStamp, serviceTime};
-            S->Q[coreId].push_back(tempObject);
-            requestsAtServer.insert(nextEventObject.requestId);
+            S->readyQ[coreId].push_back(tempObject);
         }
     }
     else
     {
-        M->droppedRequests.insert(requestId);
+        if (S->requestQueue.size() < S->requestQueueCapacity)
+            S->requestQueue.push_back({requestId, arrivalTimeStamp});
+        else
+            M->droppedRequests.insert(requestId);
     }
 }
 
 void state::departure()
 {
     auto threadId = nextEventObject.threadId;
-    int coreId = nextEventObject.coreId;
+    auto coreId = nextEventObject.coreId;
     auto requestId = nextEventObject.requestId;
     auto arrivalTimeStamp = nextEventObject.arrivalTimeStamp;
     auto remainingTime = nextEventObject.remainingTime;
@@ -75,42 +71,57 @@ void state::departure()
         if (it == M->timedOutRequests.end())
             M->successfulRequests.insert(requestId);
 
+        S->coreStatus[coreId] = Status::IDLE;
+        if (S->requestQueue.size() > 0)
+        {
+            requestQueueObject R = S->requestQueue.front();
+            S->requestQueue.pop_front();
+            auto wRequestId = R.requestId;
+            auto wArrivalTimeStamp = R.arrivalTimeStamp;
+            auto wServiceTime = D.getServiceTime();
+            threadObject T{wRequestId, threadId, wArrivalTimeStamp, wServiceTime};
+            S->readyQ[coreId].push_back(T);
+        }
+        else
+            S->threadPool.push_back(threadId);
         double responseTime = currentSimulationTime - arrivalTimeStamp;
         M->currentResponseVector.push_back(responseTime);
 
-        auto it2 = requestsAtServer.find(requestId);
-        if (it2 != requestsAtServer.end())
-            requestsAtServer.erase(it2);
-
-        S->coreStatus[coreId] = Status::IDLE;
         auto newThinkTime = D.getThinkTime();
         auto newArrivalTime = currentSimulationTime + newThinkTime;
-        int requestId = M->requestsHandled;
+        int newArrivalRequestId = M->requestsHandled;
         M->requestsHandled += 1;
-        Event N{eventType::ARRIVAL, newArrivalTime, requestId, -1, -1, 0.0, newArrivalTime};
+        Event N{eventType::ARRIVAL, newArrivalTime, newArrivalRequestId, -1, -1, 0.0, newArrivalTime};
         pq.push(N);
     }
     else
     {
-        threadObject currentRequest{requestId, threadId, arrivalTimeStamp, remainingTime};
-        S->Q[coreId].push_back(currentRequest);
+        threadObject currentThreadObject{requestId, threadId, arrivalTimeStamp, remainingTime};
+        S->readyQ[coreId].push_back(currentThreadObject);
     }
-    if (S->Q[coreId].empty() == false)
+    if (S->readyQ[coreId].size() > 0)
     {
-        auto nextRequest = S->Q[coreId].front();
-        S->Q[coreId].pop_front();
-        auto requestId = nextRequest.requestId;
-        auto nextThreadId = nextRequest.threadId;
+        auto T = S->readyQ[coreId].front();
+        S->readyQ[coreId].pop_front();
         S->coreStatus[coreId] = Status::BUSY;
-        auto currentServiceQuantum = std::min(nextRequest.remainingTime, S->timeSlice);
-        auto remainingServiceTime = std::max(0.0, nextRequest.remainingTime - S->timeSlice);
-        auto nextTimeStamp = currentSimulationTime + currentServiceQuantum + S->contextSwitchOverhead;
-        if (S->Q[coreId].size() == 0)
-        {
-            nextTimeStamp -= S->contextSwitchOverhead;
-        }
-        Event N{eventType::DEPARTURE, nextTimeStamp,
-                requestId, coreId, nextThreadId, remainingServiceTime, nextRequest.arrivalTimeStamp};
+
+        auto newRequestId = T.requestId;
+        auto threadId = T.threadId;
+        auto currentServiceQuantum = std::min(T.remainingTime, S->timeSlice);
+        auto remainingServiceTime = std::max(0.0, T.remainingTime - S->timeSlice);
+        auto timeStamp = currentSimulationTime + currentServiceQuantum + S->contextSwitchOverhead;
+        auto arrivalTimeStamp = T.arrivalTimeStamp;
+        if ((S->readyQ[coreId].size() == 0) && (newRequestId == requestId))
+            timeStamp -= S->contextSwitchOverhead;
+        Event N{
+            eventType::DEPARTURE,
+            timeStamp,
+            newRequestId,
+            coreId,
+            threadId,
+            remainingServiceTime,
+            arrivalTimeStamp
+        };
         pq.push(N);
     }
 }
@@ -119,19 +130,16 @@ void state::requestTimeout()
     int requestId = nextEventObject.requestId;
     auto its = M->successfulRequests.find(requestId);
     auto itd = M->droppedRequests.find(requestId);
-    auto it = requestsAtServer.find(requestId);
-    if (it != requestsAtServer.end())
-        requestsAtServer.erase(it);
     if ((its == M->successfulRequests.end()) && (itd == M->droppedRequests.end()))
         M->timedOutRequests.insert(requestId);
+        
     if (itd != M->droppedRequests.end())
     {
-        M->requestsDepartedorDropped += 1;
         double newThinkTime = D.getThinkTime();
         double newArrivalTime = currentSimulationTime + newThinkTime;
         int requestId = M->requestsHandled;
         M->requestsHandled += 1;
-        Event N{eventType::ARRIVAL, newArrivalTime, requestId,-1, -1, 0.0, newArrivalTime};
+        Event N{eventType::ARRIVAL, newArrivalTime, requestId, -1, -1, 0.0, newArrivalTime};
         pq.push(N);
     }
 }
@@ -148,10 +156,11 @@ void server::printServerState()
     }
     std::cout << std::endl;
     std::cout << "Queue At Server:" << std::endl;
-    std::cout << "Queue Size " << Q.size() << std::endl;
     for (auto i = 0; i < numberCores; i += 1)
     {
-        for (auto it = Q[i].begin(); it != Q[i].end(); ++it)
+
+        std::cout << "Queue" << i << "Size = " << readyQ[i].size() << std::endl;
+        for (auto it = readyQ[i].begin(); it != readyQ[i].end(); ++it)
             std::cout << "Request Id: " << it->requestId << "Arrival TimeStamp" << it->arrivalTimeStamp << std::endl;
     }
 }
@@ -194,26 +203,4 @@ double distributions::getServiceTime()
 double distributions::getTimeOut()
 {
     return getTime(timeOutValues);
-}
-
-bool server::allocateCore(int &coreId)
-{
-    for (auto count = 0; count < numberCores; count += 1)
-    {
-        if (coreStatus[nextCore] == Status::IDLE)
-        {
-            coreStatus[nextCore] = Status::BUSY;
-            coreId = nextCore;
-            nextCore += 1;
-            nextCore %= numberCores;
-            return true;
-        }
-        nextCore += 1;
-        if (nextCore == numberCores)
-        {
-            nextCore = 0;
-        }
-    }
-    coreId = -1;
-    return false;
 }
