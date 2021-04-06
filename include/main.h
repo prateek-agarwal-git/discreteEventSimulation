@@ -24,7 +24,8 @@ enum class eventType
 {
     ARRIVAL,
     DEPARTURE,
-    TIMEOUT
+    TIMEOUT,
+
 };
 
 enum class Status
@@ -43,6 +44,7 @@ struct Event
     eventType event;
     double timeStamp;
     int requestId;
+    int coreId;
     int threadId;
     double remainingTime;
     double arrivalTimeStamp; // this server should be made idle once the request departs. Departure
@@ -55,9 +57,7 @@ struct metrics
     void printMetrics();
     double areaNumInQueue;
     double areaServerStatus;
-    double testTime;
     int requestsHandled;
-    int requestsDepartedorDropped;
     std::set<int> timedOutRequests;
     std::set<int> successfulRequests;
     std::set<int> droppedRequests;
@@ -70,8 +70,6 @@ struct metrics
     double goodPut;
     double badPut;
     double dropRate;
-    int currentRun;
-    double coreUtilization;
     std::vector<std::vector<double>> responseTimes;
     std::vector<double> currentResponseVector;
 };
@@ -101,8 +99,14 @@ struct compareTimestamps
 struct threadObject
 {
     int requestId;
+    int threadId;
     double arrivalTimeStamp;
     double remainingTime;
+};
+struct requestQueueObject
+{
+    int requestId;
+    double arrivalTimeStamp;
 };
 struct server
 {
@@ -111,13 +115,16 @@ struct server
     void initializeServer();
     void printServerState();
     void readServerConfig(const pt::ptree &configTree);
-    bool allocateCore(int &threadId);
     void printServerConfig();
     int countBusyCores();
-    std::deque<threadObject> Q;
+
+    std::vector<std::deque<threadObject>> readyQ;
+    std::deque<int> threadPool;
+    std::deque<requestQueueObject> requestQueue;
+    std::vector<Status> coreStatus;
+
+    int requestQueueCapacity;
     int numberCores;
-    int nextCore;
-    std::vector<Status> cores;
     double contextSwitchOverhead;
     uint64_t numberThreads;
     double timeSlice;
@@ -166,7 +173,6 @@ struct state
         E = std::move(tempE);
     }
     std::priority_queue<Event, std::vector<Event>, compareTimestamps> pq;
-    std::set<int> requestsAtServer;
     double currentSimulationTime;
     double timeOfLastEvent;
 
@@ -177,6 +183,7 @@ struct state
 
     void initializeStats();
     void arrival();
+    //void context_switch();
     void readConfig();
     void printConfig();
     void departure();

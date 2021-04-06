@@ -10,7 +10,8 @@ void distributions::initialize()
 
 void state::initializeStats()
 {
-    M->testTime = 0.0;
+    for(auto i=0; i<S->numberCores; i++)
+        S->readyQ.push_back(std::deque<threadObject>());
     M->responseTimes.clear();
     M->accumulatedDroppedRequests = 0;
     M->accumulatedTimedOutRequests = 0;
@@ -21,12 +22,12 @@ void state::initializeStats()
     M->badPut = 0.0;
     M->goodPut = 0.0;
     M->throughPut = 0.0;
+    
 }
 
 void state::initialize()
 {
     M->requestsHandled = 0;
-    M->requestsDepartedorDropped = 0;
     currentSimulationTime = 0.0;
     timeOfLastEvent = 0.0;
     M->areaNumInQueue = 0.0;
@@ -35,6 +36,7 @@ void state::initialize()
     M->droppedRequests.clear();
     M->successfulRequests.clear();
     M->currentResponseVector.clear();
+    
     S->initializeServer();
     D.initialize();
     generateTimes();
@@ -48,7 +50,7 @@ void state::initialize()
         double thinkTime = D.getThinkTime() + 2 * i;
         auto requestId = M->requestsHandled;
         M->requestsHandled += 1;
-        Event N{eventType::ARRIVAL, thinkTime, requestId, -1, 0.0, thinkTime};
+        Event N{eventType::ARRIVAL, thinkTime, requestId, -1,-1, 0.0, thinkTime};
         pq.push(N);
     }
 }
@@ -134,19 +136,21 @@ void state::writeStats()
     double s = 0.0;
     int n = 0;
     // writing response Times
+    /*
     std::string delayFile = "output/delayFile";
     delayFile += std::to_string(C->numberOfUsers);
     delayFile += ".csv";
     std::ofstream fileDelay(delayFile, std::ios::out);
+    */
     for (auto i = 0UL; i < M->responseTimes.size(); i += 1)
     {
         for (auto j = 0UL; j < M->responseTimes[i].size(); j += 1)
         {
-            fileDelay << M->responseTimes[i][j] << " ";
+            //fileDelay << M->responseTimes[i][j] << " ";
             s += M->responseTimes[i][j];
             n += 1;
         }
-        fileDelay << "\n";
+        //fileDelay << "\n";
     }
 
     auto avgResponseTime = s / n;

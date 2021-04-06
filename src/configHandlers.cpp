@@ -19,11 +19,17 @@ void client::readClientConfig(const pt::ptree &configTree)
 }
 void server::initializeServer()
 {
-    cores.clear();
-    Q.clear();
+    coreStatus.clear();
+    requestQueue.clear();
+    threadPool.clear();
+
+    for (auto i = 0; i < numberThreads; i++)
+        threadPool.push_back(i);
     for (auto i = 0; i < numberCores; i += 1)
-        cores.push_back(Status::IDLE);
-    nextCore = 0;
+        coreStatus.push_back(Status::IDLE);
+    for (auto i = 0; i < numberCores; i += 1)
+        readyQ[i].clear();
+
 }
 void server::readServerConfig(const pt::ptree &configTree)
 {
@@ -32,6 +38,7 @@ void server::readServerConfig(const pt::ptree &configTree)
     numberCores = serverTree.get<int>("numberCores");
     numberThreads = serverTree.get<int>("numberThreads");
     timeSlice = serverTree.get<double>("timeSlice");
+    requestQueueCapacity = serverTree.get<int>("requestQueueCapacity");
 }
 void Experiment::printExperimentConfig()
 {
@@ -50,20 +57,21 @@ void server::printServerConfig()
 {
     std::cout << "Server Config:" << std::endl;
     std::cout << "numberCores = " << numberCores << std::endl;
-    std::cout << "nextCore = " << nextCore << std::endl;
+
     std::cout << "numberThreads = " << numberThreads << std::endl;
     std::cout << "contextSwitchOverhead = " << contextSwitchOverhead << std::endl;
-    std::cout << "Q.size() =  " << Q.size() << std::endl;
-    std::cout << "cores.size() =  " << cores.size() << std::endl;
-    for (auto i = 0UL; i < cores.size(); i += 1)
+    //std::cout << "Q.size() =  " << Q.size() << std::endl;
+    std::cout << "coreStatus.size() =  " << coreStatus.size() << std::endl;
+    for (auto i = 0UL; i < coreStatus.size(); i += 1)
     {
-        if (cores[i] == Status::IDLE)
+        if (coreStatus[i] == Status::IDLE)
         {
-            std::cout << i << "th thread is IDLE " << std::endl;
+            std::cout << i << "th core is IDLE " << std::endl;
         }
     }
     std::cout << "timeSlice =" << timeSlice << " seconds." << std::endl;
     std::cout << std::endl;
+    std::cout << "requestQueueCapacity: " << requestQueueCapacity << std::endl;
 }
 void distributions::printDistributionConfig()
 {

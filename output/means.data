@@ -1,12 +1,12 @@
-NumberOfUsers = 5
-Average Successful Requests = 4995
+NumberOfUsers = 90
+Average Successful Requests = 89910
 Average TimeOutRequests =   0
 Dropped Requests =   0
-Average Utilization = 0.0564793
-Average Queue Length = 0.00291135
-GoodPut = 0.98717
+Average Utilization = 0.746213
+Average Queue Length = 1.13856
+GoodPut = 17.3067
 badPut = 0
-throughPut = 0.98717
+throughPut = 17.3067
 dropRate = 0
-Average Response time= 0.0601627
+Average Response time= 2642.87
 =========================================== 
