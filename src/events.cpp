@@ -117,7 +117,7 @@ void state::departure()
         auto arrivalTimeStamp = T.arrivalTimeStamp;
 
         auto remainingTime = std::max(0.0,T.remainingTime - S->timeSlice);
-        auto currentServiceQuantum = std::min(remainingTime, S->timeSlice);
+        auto currentServiceQuantum = std::min(T.remainingTime, S->timeSlice);
         auto timeStamp = currentSimulationTime + currentServiceQuantum  + S->contextSwitchOverhead;
 
         if(S->readyQ[coreId].size() == 0 && requestId == newRequestId)

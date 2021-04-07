@@ -1,6 +1,6 @@
 {
         "clientStation": {
-                "numberOfUsers":250
+                "numberOfUsers":90
         },
         "serverStation": {
                 "contextSwitchOverhead": 0.002,
@@ -29,6 +29,6 @@
         },
         "experiment": {
                 "runs": 20,
-                "requestPerRun": 250000
+                "requestPerRun": 90000
         }
 }
