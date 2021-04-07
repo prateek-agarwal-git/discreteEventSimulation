@@ -1,48 +1,153 @@
+/***** for 250,000 runs *********/
 NumberOfUsers = 250
-Average Successful Requests = 136853
-Average TimeOutRequests = 112936
+Average Successful Requests = 35733
+Average TimeOutRequests = 214105
 Dropped Requests =   0
-Average Utilization = 0.987955
-Average Queue Length = 124.291
-GoodPut = 13.0095
-badPut = 10.7359
-throughPut = 23.7454
+Average Utilization = 0.994444
+Average Queue Length = 124.664
+GoodPut = 2.26932
+badPut = 13.5972
+throughPut = 15.8666
 dropRate = 0
-Average Response time= 5.27471
+Average Response time= 10.5039
+=========================================== 
+/****** for 25000 runs *********/
+NumberOfUsers = 250
+Average Successful Requests = 6684.3
+Average TimeOutRequests = 18147.5
+Dropped Requests =   0
+Average Utilization = 0.946598
+Average Queue Length = 104.544
+GoodPut = 4.08006
+badPut = 11.0765
+throughPut = 15.1566
+dropRate = 0
+Average Response time= 8.95022
+=========================================== 
+NumberOfUsers = 200
+Average Successful Requests = 74778.8
+Average TimeOutRequests = 125071
+Dropped Requests =   0
+Average Utilization = 0.993064
+Average Queue Length = 115.956
+GoodPut = 5.92846
+badPut = 9.91558
+throughPut = 15.844
+dropRate = 0
+Average Response time= 7.41971
+=========================================== 
+NumberOfUsers = 200
+Average Successful Requests = 9281.95
+Average TimeOutRequests = 10562.9
+Dropped Requests =   0
+Average Utilization = 0.934128
+Average Queue Length = 93.498
+GoodPut = 6.9884
+badPut = 7.95246
+throughPut = 14.9409
+dropRate = 0
+Average Response time= 6.33815
 =========================================== 
 NumberOfUsers = 250
-Average Successful Requests = 51697.9
-Average TimeOutRequests = 198141
+Average Successful Requests = 12819.2
+Average TimeOutRequests = 237011
 Dropped Requests =   0
-Average Utilization = 0.994253
-Average Queue Length = 164.213
-GoodPut = 3.34094
-badPut = 12.8047
-throughPut = 16.1456
+Average Utilization = 0.99429
+Average Queue Length = 124.611
+GoodPut = 0.826875
+badPut = 15.2878
+throughPut = 16.1147
 dropRate = 0
-Average Response time= 10.2313
+Average Response time= 10.2616
 =========================================== 
-NumberOfUsers = 90
-Average Successful Requests = 88750.9
-Average TimeOutRequests = 1159.4
+NumberOfUsers = 250
+Average Successful Requests = 17920.6
+Average TimeOutRequests = 231913
 Dropped Requests =   0
-Average Utilization = 0.956952
-Average Queue Length = 9.75246
-GoodPut = 15.3716
-badPut = 0.200798
-throughPut = 15.5724
+Average Utilization = 0.99429
+Average Queue Length = 164.379
+GoodPut = 1.15584
+badPut = 14.9578
+throughPut = 16.1137
 dropRate = 0
-Average Response time= 0.687613
+Average Response time= 10.2625
 =========================================== 
-NumberOfUsers = 90
-Average Successful Requests = 89908.8
-Average TimeOutRequests = 1.2
+NumberOfUsers = 250
+Average Successful Requests = 28652.1
+Average TimeOutRequests = 221170
 Dropped Requests =   0
-Average Utilization = 0.514035
-Average Queue Length = 1.01125
-GoodPut = 17.276
-badPut = 0.000230599
-throughPut = 17.2763
+Average Utilization = 0.993708
+Average Queue Length = 124.397
+GoodPut = 1.95318
+badPut = 15.0769
+throughPut = 17.03
 dropRate = 0
-Average Response time= 0.118039
+Average Response time= 9.42733
+=========================================== 
+NumberOfUsers = 250
+Average Successful Requests = 51689.3
+Average TimeOutRequests = 198140
+Dropped Requests =   0
+Average Utilization = 0.993678
+Average Queue Length = 124.388
+GoodPut = 3.52715
+badPut = 13.5205
+throughPut = 17.0476
+dropRate = 0
+Average Response time= 9.41197
+=========================================== 
+/**************************************************** with i *******************************************************/
+/*********** M*100 **********************/
+NumberOfUsers = 250
+Average Successful Requests = 6575.85
+Average TimeOutRequests = 18244.6
+Dropped Requests =   0
+Average Utilization = 0.968224
+Average Queue Length = 113.965
+GoodPut = 4.41069
+badPut = 12.2366
+throughPut = 16.6473
+dropRate = 0
+Average Response time= 8.7252
+=========================================== 
+/******************* M*1000 ***************/
+NumberOfUsers = 250
+Average Successful Requests = 49958.8
+Average TimeOutRequests = 199870
+Dropped Requests =   0
+Average Utilization = 0.996757
+Average Queue Length = 125.67
+GoodPut = 3.41949
+badPut = 13.6803
+throughPut = 17.0998
+dropRate = 0
+Average Response time= 9.49188
+=========================================== 
+/********************************************* with i*2 *****************************************/
+/*********************** M*100 ********************************/
+
+NumberOfUsers = 250
+Average Successful Requests = 8306.35
+Average TimeOutRequests = 16514.1
+Dropped Requests =   0
+Average Utilization = 0.939669
+Average Queue Length = 102.073
+GoodPut = 5.40926
+badPut = 10.7537
+throughPut = 16.163
+dropRate = 0
+Average Response time= 7.91883
+=========================================== 
+/************** M*1000 *************************/
+NumberOfUsers = 250
+Average Successful Requests = 51689.3
+Average TimeOutRequests = 198140
+Dropped Requests =   0
+Average Utilization = 0.993678
+Average Queue Length = 124.388
+GoodPut = 3.52715
+badPut = 13.5205
+throughPut = 17.0476
+dropRate = 0
+Average Response time= 9.41197
 =========================================== 

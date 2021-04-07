@@ -47,7 +47,7 @@ void state::initialize()
 
     for (auto i = 0; i < C->numberOfUsers; i += 1)
     {
-        double thinkTime = D.getThinkTime() + 2 * i;
+        double thinkTime = D.getThinkTime() + 2*i;
         auto requestId = M->requestsHandled;
         M->requestsHandled += 1;
         Event N{eventType::ARRIVAL, thinkTime, requestId, -1,-1, 0.0, thinkTime};

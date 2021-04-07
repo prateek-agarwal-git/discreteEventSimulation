@@ -29,8 +29,6 @@ int main()
                 break;
             
             }
-            if((S.S->numberThreads -S.S->threadPool.size()) > S.C->numberOfUsers )
-                std::cout<<"free threads = "<<S.S->threadPool.size()<<std::endl;
         }
 
         S.updateAccumulators();

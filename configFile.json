@@ -1,18 +1,18 @@
 {
         "clientStation": {
-                "numberOfUsers":90
+                "numberOfUsers":250
         },
         "serverStation": {
-                "contextSwitchOverhead": 0.002,
-                "numberCores": 2,
-                "numberThreads": 500,
+                "contextSwitchOverhead": 0.001,
+                "numberCores": 1,
+                "numberThreads": 128,
                 "timeSlice": 0.02,
-                "requestQueueCapacity":100
+                "requestQueueCapacity":128
         },
         "distribution": {
                 "serviceTime": {
                         "type": "exponential",
-                       "p1":0.035 ,
+                       "p1":0.035,
                         "p2": 0.02
                 },
                 "thinkTime": {
@@ -29,6 +29,6 @@
         },
         "experiment": {
                 "runs": 20,
-                "requestPerRun": 90000
+                "requestPerRun": 250000
         }
 }
